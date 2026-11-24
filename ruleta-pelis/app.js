@@ -3,12 +3,12 @@
 const KEY = 'ruleta-pelis-v1';
 const COLORS = ['#b3122b','#7a0f2b','#d9a441','#4a1a5e','#e0452f','#1f5c6b','#9c2a5a','#c47a1a'];
 const DEFAULTS = [
- ['El Padrino',1972,'Drama','Cine'],['Amélie',2001,'Romance','Cine'],['Parásitos',2019,'Thriller','Cine'],
- ['La La Land',2016,'Romance','Cine'],['Spider-Man: Un nuevo universo',2018,'Animación','Cine'],
- ['Origen',2010,'Ciencia ficción','Cine'],['Superlópez',2018,'Comedia','Cine'],['Coco',2017,'Animación','Cine'],
- ['Antes del amanecer',1995,'Romance','Cine'],['Mad Max: Furia en la carretera',2015,'Acción','Cine'],
- ['El gran hotel Budapest',2014,'Comedia','Cine'],['Midsommar',2019,'Terror','Cine'],
- ['Interstellar',2014,'Ciencia ficción','Cine'],['Ratatouille',2007,'Animación','Cine']
+ ['El Padrino',1972,'Drama',''],['Amélie',2001,'Romance',''],['Parásitos',2019,'Thriller',''],
+ ['La La Land',2016,'Romance',''],['Spider-Man: Un nuevo universo',2018,'Animación',''],
+ ['Origen',2010,'Ciencia ficción',''],['Superlópez',2018,'Comedia',''],['Coco',2017,'Animación',''],
+ ['Antes del amanecer',1995,'Romance',''],['Mad Max: Furia en la carretera',2015,'Acción',''],
+ ['El gran hotel Budapest',2014,'Comedia',''],['Midsommar',2019,'Terror',''],
+ ['Interstellar',2014,'Ciencia ficción',''],['Ratatouille',2007,'Animación','']
 ].map(([title,year,genre,platform],i)=>({id:'d'+i,title,year:String(year),genre,platform,poster:'',on:true}));
 
 const $ = s => document.querySelector(s);
