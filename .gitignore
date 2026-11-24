@@ -3,3 +3,4 @@
 _fotos_candidatas/
 _modelos_candidatos/
 .claude/settings.local.json
+.netlify/
