@@ -1,0 +1,5 @@
+.DS_Store
+# descargas de prueba (el modelo original pesa 12 MB)
+_fotos_candidatas/
+_modelos_candidatos/
+.claude/settings.local.json

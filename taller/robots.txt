@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+# Añadir la línea Sitemap con el dominio real: Sitemap: https://www.tallernorte.es/sitemap.xml

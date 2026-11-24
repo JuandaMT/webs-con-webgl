@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Taller Norte · Mecánica, neumáticos y diagnosis</title>
+<meta name="description" content="Taller mecánico de confianza. Mecánica general, neumáticos, frenos, diagnosis electrónica y pre-ITV. Presupuesto en 24 horas y 2 años de garantía. Pide cita.">
+<meta name="theme-color" content="#0d0d0e">
+<!-- Cambiar https://www.tallernorte.es/ por el dominio real del cliente -->
+<link rel="canonical" href="https://www.tallernorte.es/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_ES">
+<meta property="og:title" content="Taller Norte · Mecánica, neumáticos y diagnosis">
+<meta property="og:description" content="Mecánica general, neumáticos, frenos, diagnosis y pre-ITV. Presupuesto claro antes de tocar nada.">
+<meta property="og:url" content="https://www.tallernorte.es/">
+<meta property="og:image" content="https://www.tallernorte.es/img/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d0d0e'/%3E%3Ccircle cx='32' cy='32' r='17' fill='none' stroke='%23ff5a1f' stroke-width='7'/%3E%3Ccircle cx='32' cy='32' r='5' fill='%23ff5a1f'/%3E%3C/svg%3E">
+<link rel="preload" href="fonts/BarlowCondensed-800-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="models/car.glb" as="fetch" crossorigin>
+<link rel="modulepreload" href="vendor/three/build/three.module.js">
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/style.css">
+<script type="application/ld+json">
+{ "@context": "https://schema.org", "@type": "AutoRepair",
+  "name": "Taller Norte", "url": "https://www.tallernorte.es/", "telephone": "+34600000000",
+  "email": "hola@tallernorte.es", "priceRange": "€€",
+  "address": { "@type": "PostalAddress", "streetAddress": "Calle del Motor, 12", "postalCode": "28000", "addressLocality": "Tu ciudad", "addressCountry": "ES" },
+  "openingHoursSpecification": [
+    { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"], "opens": "08:30", "closes": "19:30" },
+    { "@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "09:00", "closes": "13:00" } ] }
+</script>
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three/build/three.module.js",
+  "three/addons/": "./vendor/three/addons/",
+  "lenis": "./vendor/lenis/lenis.mjs"
+} }
+</script>
+<noscript><style>.loader{display:none}body.loading{overflow:auto}.stop{position:relative;opacity:1;visibility:visible;transform:none}.story{height:auto}.story__sticky{position:static;height:auto}</style></noscript>
+</head>
+<body class="loading">
+
+<canvas id="gl" aria-hidden="true"></canvas>
+
+<div class="loader">
+  <span>Abriendo el taller</span>
+  <div class="loader__bar"><i id="loadbar"></i></div>
+</div>
+
+<header class="nav">
+  <a class="nav__logo" href="#inicio">TALLER<b>NORTE</b></a>
+  <nav>
+    <a href="#recorrido">Servicios</a>
+    <a href="#contacto" class="nav__cta">Pedir cita</a>
+  </nav>
+</header>
+
+<main>
+  <!-- HISTORIA: la escena 3D está fija y el scroll mueve la cámara por el coche -->
+  <section class="story" id="inicio" data-stops="7">
+    <div class="story__sticky" id="recorrido">
+
+      <article class="stop stop--hero on" data-i="0">
+        <p class="eyebrow">Mecánica · Neumáticos · Diagnosis</p>
+        <h1>
+          <span class="line"><span style="--d:.1s">Tu coche,</span></span>
+          <span class="line"><span style="--d:.22s">en buenas</span></span>
+          <span class="line"><span style="--d:.34s">manos<i>.</i></span></span>
+        </h1>
+        <p class="lead">Más de 20 años cuidando coches del barrio. Presupuesto claro antes de tocar nada.</p>
+      </article>
+
+      <article class="stop stop--right" data-i="1">
+        <span class="stop__n">01</span>
+        <h2>Mecánica<br>general</h2>
+        <p>Aceite, filtros, distribución, correas. Abrimos el capó, revisamos todo y te explicamos cada cosa antes de empezar.</p>
+        <ul><li>Cambio de aceite y filtros</li><li>Distribución y embrague</li><li>Garantía por escrito</li></ul>
+      </article>
+
+      <article class="stop stop--left" data-i="2">
+        <span class="stop__n">02</span>
+        <h2>Neumáticos<br>y alineado</h2>
+        <p>Montaje, equilibrado y alineación láser. Las mejores marcas, a precio de taller.</p>
+        <ul><li>Montaje y equilibrado</li><li>Alineación de dirección</li><li>Neumáticos de todas las marcas</li></ul>
+      </article>
+
+      <article class="stop stop--right" data-i="3">
+        <span class="stop__n">03</span>
+        <h2>Frenos</h2>
+        <p>Pastillas, discos y líquido de frenos. Tu seguridad no se negocia: lo revisamos sin compromiso.</p>
+        <ul><li>Pastillas y discos</li><li>Líquido de frenos</li><li>Revisión gratuita</li></ul>
+      </article>
+
+      <article class="stop stop--left" data-i="4">
+        <span class="stop__n">04</span>
+        <h2>Diagnosis<br>electrónica</h2>
+        <p>Ese piloto que no se apaga, ese fallo que viene y va. Lo leemos con equipos oficiales, te lo explicamos y lo arreglamos.</p>
+        <ul><li>Lectura de averías</li><li>Cualquier marca y modelo</li><li>Informe claro</li></ul>
+      </article>
+
+      <article class="stop stop--right" data-i="5">
+        <span class="stop__n">05</span>
+        <h2>Revisión<br>y pre-ITV</h2>
+        <p>Subimos el coche al elevador y miramos todo lo que no se ve: suspensión, escape, transmisión y fugas.</p>
+        <ul><li>Pre-ITV con informe</li><li>Suspensión y escape</li><li>Revisión por bajos</li></ul>
+      </article>
+
+      <article class="stop stop--center" data-i="6">
+        <h2>Listo para<br>la carretera</h2>
+        <p>Presupuesto en 24 horas y garantía de 2 años en todas las reparaciones.</p>
+        <a class="btn" href="#contacto">Pedir cita <span>→</span></a>
+      </article>
+
+      <!-- puntos sobre las piezas -->
+      <div class="hot" data-hot="1"><i></i><b>Motor</b></div>
+      <div class="hot" data-hot="2"><i></i><b>Neumático</b></div>
+      <div class="hot" data-hot="3"><i></i><b>Disco de freno</b></div>
+      <div class="hot" data-hot="4"><i></i><b>Cuadro y centralita</b></div>
+      <div class="hot" data-hot="5"><i></i><b>Bajos del coche</b></div>
+
+      <!-- progreso -->
+      <ol class="dots" aria-label="Secciones">
+        <li data-go="0"><span>Inicio</span></li>
+        <li data-go="1"><span>Mecánica</span></li>
+        <li data-go="2"><span>Neumáticos</span></li>
+        <li data-go="3"><span>Frenos</span></li>
+        <li data-go="4"><span>Diagnosis</span></li>
+        <li data-go="5"><span>Revisión</span></li>
+        <li data-go="6"><span>Cita</span></li>
+      </ol>
+
+      <div class="swatches" aria-label="Color del coche"></div>
+      <div class="scrollhint"><span></span>Scroll</div>
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="stat" data-reveal><b data-count="20">0</b><span>años de experiencia</span></div>
+    <div class="stat" data-reveal><b data-count="12000" data-sep>0</b><span>coches reparados</span></div>
+    <div class="stat" data-reveal><b data-count="24">0</b><span>horas para presupuesto</span></div>
+    <div class="stat" data-reveal><b data-count="2">0</b><span>años de garantía</span></div>
+  </section>
+
+  <section class="contact" id="contacto">
+    <p class="eyebrow" data-reveal>Contacto</p>
+    <h2 class="big" data-reveal>¿Hablamos de<br>tu coche?</h2>
+    <div class="contact__grid">
+      <a class="btn btn--big" href="tel:+34600000000" data-reveal>Llamar · 600 000 000 <span>→</span></a>
+      <a class="btn btn--ghost btn--big" href="https://wa.me/34600000000" data-reveal>WhatsApp <span>→</span></a>
+    </div>
+    <div class="contact__info" data-reveal>
+      <div><h4>Dirección</h4><p>Calle del Motor, 12<br>28000 · Tu ciudad</p></div>
+      <div><h4>Horario</h4><p>Lun–Vie · 8:30–14:00 / 16:00–19:30<br>Sáb · 9:00–13:00</p></div>
+      <div><h4>Email</h4><p>hola@tallernorte.es</p></div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span>© 2026 Taller Norte · Datos de ejemplo</span>
+  <span>Modelo 3D «CarConcept» de Eric Chadwick, <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener">CC BY 4.0</a> (Khronos Group)</span>
+</footer>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
