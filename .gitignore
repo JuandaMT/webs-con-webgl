@@ -4,3 +4,7 @@ _fotos_candidatas/
 _modelos_candidatos/
 .claude/settings.local.json
 .netlify/
+
+# CRM: datos de clientes y clave de Google Maps (nunca al repo)
+crm/data/
+crm/config.local.js

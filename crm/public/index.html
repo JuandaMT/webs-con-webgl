@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clientes · CRM</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Cpath d='M9 21l5-10 4 6 5-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <nav class="nav" id="nav">
+    <div class="brand"><span class="logo"></span><b>Clientes</b></div>
+    <button data-view="panel" class="on"><i>◧</i><span>Panel</span></button>
+    <button data-view="clientes"><i>☰</i><span>Clientes</span></button>
+    <button data-view="buscar"><i>⌕</i><span>Buscar</span></button>
+    <button data-view="ajustes"><i>⚙</i><span>Ajustes</span></button>
+  </nav>
+  <main class="main">
+    <section id="v-panel" class="view"></section>
+    <section id="v-clientes" class="view" hidden></section>
+    <section id="v-buscar" class="view" hidden>
+      <header class="head"><div><h1>Buscar negocios</h1><p class="sub">Encuentra tiendas y negocios locales por zona y tipo con Google Maps.</p></div></header>
+      <div id="map-setup" class="notice" hidden></div>
+      <form id="search-form" class="searchbar">
+        <input id="q-type" placeholder="Tipo de negocio (ej. inmobiliaria, joyería, cafetería)" required>
+        <input id="q-zone" placeholder="Zona (ej. Chapinero, Bogotá)" required>
+        <button class="btn primary" id="q-go">Buscar</button>
+      </form>
+      <div class="searchgrid">
+        <div id="results" class="results"><p class="empty">Los resultados aparecerán aquí.</p></div>
+        <div class="mapwrap"><div id="map"></div></div>
+      </div>
+    </section>
+    <section id="v-ajustes" class="view" hidden></section>
+  </main>
+</div>
+<aside id="drawer" class="drawer" hidden aria-hidden="true"></aside>
+<div id="scrim" class="scrim" hidden></div>
+<div id="toast" class="toast" role="status"></div>
+<script src="/config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
