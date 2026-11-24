@@ -225,7 +225,7 @@ async function where(m){
 
 /* ---------- TMDB (opcional) ---------- */
 const TK = 'ruleta-tmdb-key', REGION = 'ES', IMG = 'https://image.tmdb.org/t/p/';
-let tkey = localStorage.getItem(TK) || '', tGenres = null, tTimer = 0;
+let tkey = localStorage.getItem(TK) || (window.TMDB_KEY || '').trim(), tGenres = null, tTimer = 0;
 async function tm(path, params = {}){
   const u = new URL('https://api.themoviedb.org/3' + path);
   u.searchParams.set('language', 'es-ES');
