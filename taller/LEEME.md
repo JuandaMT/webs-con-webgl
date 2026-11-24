@@ -32,6 +32,7 @@ La carpeta `taller/` es una web estática y no necesita compilar. Se puede subir
 - [ ] Cifras de la sección de números (años, coches, garantía) y textos de servicios: que sean reales
 - [ ] Añadir `Sitemap:` en `robots.txt`
 - [ ] Política de privacidad / aviso legal si el cliente lo exige (la web no usa cookies ni analítica)
+- [ ] **Quitar el `noindex`** (meta `robots` en `index.html` y `X-Robots-Tag` en `_headers`): la demo está marcada como no indexable y, si se olvida, Google no mostrará la web del cliente
 - [ ] Mantener la atribución del modelo 3D en el pie de página
 
 ## Créditos (obligatorios al usar el modelo)
