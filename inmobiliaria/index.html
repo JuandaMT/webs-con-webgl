@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Altozano Inmobiliaria · Ático con terraza en el Residencial Mirador del Parque</title>
+<meta name="description" content="Recorre en 3D un ático de 162 m² con terraza de 47 m², 2 dormitorios y 2 baños en el Residencial Mirador del Parque. 695.000 €. Agenda tu visita con Altozano Inmobiliaria.">
+<meta name="theme-color" content="#14171f">
+<!-- DEMO: quitar esta línea y la cabecera X-Robots-Tag de _headers al publicar la web real -->
+<meta name="robots" content="noindex, nofollow">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_ES">
+<meta property="og:title" content="Altozano Inmobiliaria · Ático con terraza, visita 3D">
+<meta property="og:description" content="Entra en el piso desde la fachada y recórrelo con el scroll: salón, cocina, dormitorios, baño y terraza.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314171f'/%3E%3Cpath d='M12 50V28L32 12l20 16v22H38V36H26v14z' fill='none' stroke='%23e8a76b' stroke-width='5' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preload" href="fonts/Barlow-500-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="modulepreload" href="vendor/three/build/three.module.js">
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/style.css">
+<script type="application/ld+json">
+{ "@context": "https://schema.org", "@type": "RealEstateAgent",
+  "name": "Altozano Inmobiliaria", "telephone": "+34600000000", "email": "hola@altozano.example",
+  "address": { "@type": "PostalAddress", "streetAddress": "Paseo de los Almendros, 18", "postalCode": "28000", "addressLocality": "Tu ciudad", "addressCountry": "ES" } }
+</script>
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three/build/three.module.js",
+  "three/addons/": "./vendor/three/addons/",
+  "lenis": "./vendor/lenis/lenis.mjs"
+} }
+</script>
+<noscript><style>.loader{display:none}body.loading{overflow:auto}.stop{position:relative;opacity:1;visibility:visible;transform:none;margin:20px}.story{height:auto}.story__sticky{position:static;height:auto}.hud{display:none}</style></noscript>
+</head>
+<body class="loading">
+
+<canvas id="gl" aria-hidden="true"></canvas>
+
+<div class="loader">
+  <span>Altozano</span>
+  <div class="loader__bar"><i></i></div>
+</div>
+
+<header class="nav">
+  <a class="nav__logo" href="#inicio"><svg viewBox="0 0 64 64" width="26" height="26" aria-hidden="true"><path d="M12 50V28L32 12l20 16v22H38V36H26v14z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/></svg>Altozano<b>Inmobiliaria</b></a>
+  <nav>
+    <a href="#ficha" class="nav__hide">La vivienda</a>
+    <a href="#contacto" class="nav__cta">Agendar visita</a>
+  </nav>
+</header>
+
+<main>
+  <!-- HISTORIA: la escena 3D está fija y el scroll mueve la cámara del exterior al interior -->
+  <section class="story" id="inicio">
+    <div class="story__sticky">
+
+      <article class="stop stop--hero" data-i="0">
+        <p class="eyebrow">Obra nueva · Venta</p>
+        <h1>
+          <span class="line"><span style="--d:.1s">Tu próximo</span></span>
+          <span class="line"><span style="--d:.22s">hogar tiene</span></span>
+          <span class="line"><span style="--d:.34s"><em>vistas</em>.</span></span>
+        </h1>
+        <p class="lead">Un ático de 162&nbsp;m² con terraza en el Residencial Mirador del Parque. Haz scroll y entra a verlo.</p>
+        <p class="cue" aria-hidden="true"><i></i>Desliza para entrar</p>
+      </article>
+
+      <article class="stop card" data-i="1">
+        <p class="eyebrow">4.º B · Residencial Mirador del Parque</p>
+        <h2>Un edificio con <em>carácter</em></h2>
+        <p>Seis plantas de piedra natural y madera, jardín comunitario, garaje y ascensor hasta el rellano. Tu piso es el de la terraza iluminada.</p>
+        <ul class="chips"><li>695.000&nbsp;€</li><li>162&nbsp;m²</li><li>2 hab.</li><li>2 baños</li></ul>
+      </article>
+
+      <article class="stop card" data-i="3">
+        <span class="stop__n">01 · Salón</span>
+        <h2>Luz hasta <em>la tarde</em></h2>
+        <p>Salón-comedor de 34&nbsp;m² con ventanales de suelo a techo, doble orientación y suelo de roble con calefacción radiante.</p>
+        <ul class="chips"><li>34 m²</li><li>Doble orientación</li><li>Suelo radiante</li></ul>
+      </article>
+
+      <article class="stop card" data-i="5">
+        <span class="stop__n">02 · Cocina</span>
+        <h2>Cocina abierta <em>con isla</em></h2>
+        <p>Encimera de cuarzo, electrodomésticos integrados, columna de despensa y una isla de 3,4&nbsp;m pensada para cocinar y recibir.</p>
+        <ul class="chips"><li>Encimera de cuarzo</li><li>Isla de 3,4 m</li><li>Electrodomésticos integrados</li></ul>
+      </article>
+
+      <article class="stop card" data-i="7">
+        <span class="stop__n">03 · Dormitorio 2</span>
+        <h2>Descanso <em>y trabajo</em></h2>
+        <p>Dormitorio de 24&nbsp;m² con cama doble, armario empotrado y una zona de escritorio junto a la ventana trasera. Silencioso, orientado al patio.</p>
+        <ul class="chips"><li>24 m²</li><li>Armario empotrado</li><li>Zona de estudio</li></ul>
+      </article>
+
+      <article class="stop card" data-i="10">
+        <span class="stop__n">04 · Dormitorio principal</span>
+        <h2>Una suite <em>con terraza</em></h2>
+        <p>32&nbsp;m² con salida directa a la terraza, vestidor a medida y baño en suite. Cortinas eléctricas y tomas de carga en las mesillas.</p>
+        <ul class="chips"><li>32 m²</li><li>Vestidor</li><li>Acceso a terraza</li></ul>
+      </article>
+
+      <article class="stop card" data-i="12">
+        <span class="stop__n">05 · Baño en suite</span>
+        <h2>Un baño <em>de hotel</em></h2>
+        <p>Bañera exenta, doble lavabo en piedra, ducha de obra y espejo con luz integrada. Un segundo aseo de cortesía junto al pasillo.</p>
+        <ul class="chips"><li>Bañera exenta</li><li>Doble lavabo</li><li>Aseo de cortesía</li></ul>
+      </article>
+
+      <article class="stop card card--end" data-i="16">
+        <span class="stop__n">06 · Terraza</span>
+        <h2>47&nbsp;m² para <em>el atardecer</em></h2>
+        <p>Una terraza corrida con toma de agua, luz exterior y zona de comedor y lounge. Orientación suroeste, sin edificios enfrente.</p>
+        <a class="btn" href="#contacto">Agendar una visita <span>→</span></a>
+      </article>
+    </div>
+
+    <!-- HUD: nombre de la estancia, plano y progreso -->
+    <div class="hud" aria-hidden="true">
+      <div class="hud__room"><small>Estás en</small><b id="roomName">Exterior</b></div>
+      <canvas id="plan" width="360" height="240"></canvas>
+      <div class="hud__bar"><i id="prog"></i></div>
+    </div>
+    <div class="tag" id="tag"><b>Tu piso</b><span>4.º B</span></div>
+  </section>
+
+  <section class="ficha" id="ficha">
+    <div class="wrap">
+      <p class="eyebrow">La vivienda</p>
+      <h2 class="big">Todo lo que <em>cuenta</em></h2>
+      <div class="price"><span>695.000 €</span><small>4.290 €/m² · Gastos de comunidad: 190 €/mes</small></div>
+      <ul class="grid">
+        <li><b>162 m²</b><span>construidos</span></li>
+        <li><b>47 m²</b><span>de terraza</span></li>
+        <li><b>2</b><span>dormitorios</span></li>
+        <li><b>2</b><span>baños</span></li>
+        <li><b>4.ª</b><span>planta, con ascensor</span></li>
+        <li><b>SO</b><span>orientación suroeste</span></li>
+        <li><b>A</b><span>certificado energético</span></li>
+        <li><b>2</b><span>plazas de garaje + trastero</span></li>
+      </ul>
+      <p class="note">Aerotermia, suelo radiante, doble acristalamiento, domótica, preinstalación de carga eléctrica y piscina comunitaria en la cubierta. Datos orientativos de esta demo.</p>
+    </div>
+  </section>
+
+  <section class="contacto" id="contacto">
+    <div class="wrap contacto__grid">
+      <div>
+        <p class="eyebrow">Visita sin compromiso</p>
+        <h2 class="big">Ven a <em>verlo</em> en persona</h2>
+        <p class="lead">Marta Quintero, tu asesora, te enseña el piso en 45 minutos y te prepara una simulación de hipoteca el mismo día.</p>
+        <ul class="agent">
+          <li><span>Teléfono / WhatsApp</span><a href="tel:+34600000000">600 000 000</a></li>
+          <li><span>Email</span><a href="mailto:hola@altozano.example">hola@altozano.example</a></li>
+          <li><span>Oficina</span>Paseo de los Almendros, 18 · Tu ciudad</li>
+          <li><span>Horario</span>L–V 9:30–19:30 · S 10:00–13:30</li>
+        </ul>
+      </div>
+      <form class="form" id="form" novalidate>
+        <label>Nombre<input name="nombre" autocomplete="name" required placeholder="Tu nombre"></label>
+        <label>Teléfono<input name="tel" type="tel" autocomplete="tel" required placeholder="600 000 000"></label>
+        <label>Email<input name="email" type="email" autocomplete="email" placeholder="tu@email.com"></label>
+        <label>Cuándo te viene bien
+          <select name="cuando"><option>Entre semana por la mañana</option><option>Entre semana por la tarde</option><option>Sábado por la mañana</option></select>
+        </label>
+        <button class="btn" type="submit">Solicitar visita <span>→</span></button>
+        <p class="form__msg" id="msg" role="status"></p>
+        <p class="form__legal">Demo: el formulario no envía datos a ningún servidor.</p>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span>© Altozano Inmobiliaria · Web de demostración, datos y vivienda ficticios</span>
+  <a href="#inicio">Volver arriba ↑</a>
+</footer>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
