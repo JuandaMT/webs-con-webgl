@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14060a">
+<title>Ruleta de pelis · Noche de cine</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%23b3122b'/><circle cx='32' cy='32' r='8' fill='%23f4c95d'/></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+<header class="top">
+  <p class="eyebrow">★ Noche de cine ★</p>
+  <h1>¿Qué vemos <em>hoy?</em></h1>
+  <p class="sub">Que decida el destino. Sin discusiones.</p>
+</header>
+
+<main class="layout">
+  <section class="stage" aria-label="Ruleta">
+    <div class="filters" aria-label="Filtros">
+      <div class="chips" id="genreChips" role="group" aria-label="Género"></div>
+      <label class="sel">Plataforma
+        <select id="platformSel"></select>
+      </label>
+    </div>
+    <div class="wheel-wrap">
+      <div class="pointer" aria-hidden="true"></div>
+      <canvas id="wheel" role="img" aria-label="Ruleta de películas"></canvas>
+      <button id="spin" class="spin" type="button">GIRAR</button>
+    </div>
+    <p id="count" class="count" aria-live="polite"></p>
+    <label class="mute"><input type="checkbox" id="sound" checked> Sonido</label>
+  </section>
+
+  <aside class="panel" aria-label="Lista de películas">
+    <h2>Tu lista</h2>
+    <form id="addForm" class="add" autocomplete="off">
+      <input id="fTitle" placeholder="Título" required maxlength="60">
+      <div class="row">
+        <input id="fYear" placeholder="Año" inputmode="numeric" maxlength="4">
+        <input id="fGenre" placeholder="Género" list="genres" maxlength="20">
+        <input id="fPlat" placeholder="Plataforma" list="plats" maxlength="20">
+      </div>
+      <input id="fPoster" placeholder="URL del póster (opcional)" type="url">
+      <datalist id="genres"></datalist><datalist id="plats"></datalist>
+      <button class="btn gold" type="submit">+ Añadir peli</button>
+    </form>
+    <ul id="list" class="list"></ul>
+    <div class="tools">
+      <button class="btn ghost" id="restore" type="button">Restaurar ejemplos</button>
+      <button class="btn ghost" id="clear" type="button">Vaciar</button>
+    </div>
+  </aside>
+</main>
+
+<div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="wTitle">
+  <canvas id="confetti"></canvas>
+  <div class="card">
+    <p class="eyebrow">¡Esta es la elegida!</p>
+    <div class="poster" id="wPoster"></div>
+    <h3 id="wTitle"></h3>
+    <p id="wMeta" class="meta"></p>
+    <div class="actions">
+      <button class="btn gold" id="again">Girar otra vez</button>
+      <button class="btn red" id="removeSpin">Quitar y girar</button>
+      <button class="btn ghost" id="close">¡Vamos a verla!</button>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
