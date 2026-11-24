@@ -69,3 +69,20 @@ select{background:#00000055;color:var(--cream);border:1px solid #f4c95d55;border
 @keyframes fade{from{opacity:0}}@keyframes pop{from{transform:scale(.7) rotate(-3deg);opacity:0}}
 @media(max-width:860px){.layout{grid-template-columns:1fr;padding:8px 14px 40px}.list{max-height:none}}
 @media(prefers-reduced-motion:reduce){.card,.modal{animation:none}}
+.tmdb{margin:0 0 12px;border:1px solid #f4c95d33;border-radius:12px;background:#00000030}
+.tmdb summary{cursor:pointer;padding:12px;font:600 .88rem system-ui,sans-serif;color:var(--gold)}
+.tmdb-body{padding:0 12px 12px;display:grid;gap:8px}
+.tmdb input{width:100%;background:#00000055;border:1px solid #f4c95d33;color:var(--cream);border-radius:10px;padding:11px;font-size:16px;min-width:0}
+.keyrow{display:flex;gap:8px}.keyrow .btn{padding:8px 14px}
+.hint{margin:0;font:.78rem system-ui,sans-serif;color:var(--muted)}
+.tres{max-height:300px;margin:6px 0}.tres li{border-left-color:var(--gold)}
+.th{width:34px;height:50px;object-fit:cover;border-radius:4px}
+.foot{max-width:640px;margin:0 auto;padding:0 20px 28px;text-align:center;font:.75rem system-ui,sans-serif;color:var(--muted)}
+.where{margin:0 0 14px;text-align:left;display:grid;gap:8px;font-family:system-ui,sans-serif}
+.where .hint{text-align:center}.wline{margin:0;text-align:center;font-size:.9rem}
+.wgroup{display:grid;gap:4px}.wgroup>span{font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--gold)}
+.logos{display:flex;flex-wrap:wrap;gap:6px}
+.prov{display:inline-flex;align-items:center;gap:6px;background:#ffffff14;border-radius:8px;padding:4px 10px 4px 4px;font-size:.78rem}
+.prov img{width:24px;height:24px;border-radius:6px}
+.wlink{color:var(--gold);font-size:.82rem;text-align:center}
+.card{max-height:94vh;overflow:auto}

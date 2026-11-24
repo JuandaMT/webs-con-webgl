@@ -125,7 +125,7 @@ function showWinner(m){
   if(m.poster){ const im = new Image(); im.alt = 'Póster de ' + m.title; im.onerror = fake; im.src = m.poster; p.appendChild(im); } else fake();
   $('#modal').hidden = false; $('#again').focus();
   [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.25,0.08,'triangle'), i*110));
-  confetti();
+  confetti(); where(m);
 }
 function closeModal(){ $('#modal').hidden = true; stopConfetti(); }
 let cf = null;
@@ -196,6 +196,108 @@ $('#addForm').onsubmit = e => {
 };
 $('#restore').onclick = () => { movies = structuredClone(DEFAULTS); fGenre = fPlat = ''; save(); render(); };
 $('#clear').onclick = () => { if(confirm('¿Vaciar toda la lista?')){ movies = []; save(); render(); } };
+
+/* ---------- ¿Dónde verla? ---------- */
+const whereCache = {};
+async function where(m){
+  const box = $('#wWhere'), mine = m;
+  const own = m.platform ? `<p class="wline">En tu lista: <b>${esc(m.platform)}</b></p>` : '';
+  if(!tkey){ box.innerHTML = own + '<p class="hint">Activa TMDB (en la lista) para ver dónde está disponible.</p>'; return; }
+  box.innerHTML = own + '<p class="hint">Buscando dónde verla…</p>';
+  try{
+    if(!whereCache[m.id]){
+      let id = /^tmdb\d+$/.test(m.id) ? m.id.slice(4) : null;
+      if(!id){
+        const q = { query: m.title, include_adult: 'false' }; if(m.year) q.year = m.year;
+        id = (await tm('/search/movie', q)).results?.[0]?.id;
+      }
+      whereCache[m.id] = id ? (await tm(`/movie/${id}/watch/providers`)).results?.[REGION] || {} : {};
+    }
+    if(winner !== mine || $('#modal').hidden) return;
+    const w = whereCache[m.id], groups = [['flatrate','Suscripción'],['free','Gratis'],['rent','Alquiler'],['buy','Compra']];
+    const html = groups.filter(([k]) => w[k]?.length).map(([k,l]) =>
+      `<div class="wgroup"><span>${l}</span><div class="logos">${w[k].map(p =>
+        `<span class="prov" title="${esc(p.provider_name)}">${p.logo_path ? `<img src="${IMG}w92${p.logo_path}" alt="">` : ''}${esc(p.provider_name)}</span>`).join('')}</div></div>`).join('');
+    box.innerHTML = own + (html ? html + (w.link ? `<a class="wlink" href="${esc(w.link)}" target="_blank" rel="noopener">Ver más opciones ↗</a>` : '') + '<p class="hint">Disponibilidad en España · datos de JustWatch vía TMDB</p>'
+      : '<p class="hint">No hay datos de plataformas en España para esta película.</p>');
+  }catch(e){ if(winner === mine) box.innerHTML = own + '<p class="hint">No se pudo consultar la disponibilidad.</p>'; }
+}
+
+/* ---------- TMDB (opcional) ---------- */
+const TK = 'ruleta-tmdb-key', REGION = 'ES', IMG = 'https://image.tmdb.org/t/p/';
+let tkey = localStorage.getItem(TK) || '', tGenres = null, tTimer = 0;
+async function tm(path, params = {}){
+  const u = new URL('https://api.themoviedb.org/3' + path);
+  u.searchParams.set('language', 'es-ES');
+  Object.entries(params).forEach(([k,v]) => u.searchParams.set(k, v));
+  const opt = {};
+  if(tkey.length > 40) opt.headers = { Authorization: 'Bearer ' + tkey }; else u.searchParams.set('api_key', tkey);
+  const r = await fetch(u, opt);
+  if(r.status === 401) throw new Error('Clave no válida');
+  if(!r.ok) throw new Error('Error ' + r.status);
+  return r.json();
+}
+function tStatus(t, err){ const s = $('#tStatus'); s.textContent = t; s.style.color = err ? '#ff8a8a' : ''; }
+async function genreMap(){
+  if(!tGenres){ const d = await tm('/genre/movie/list'); tGenres = Object.fromEntries(d.genres.map(g => [g.id, g.name])); }
+  return tGenres;
+}
+async function toMovie(r, withPlat){
+  const g = await genreMap(); let platform = '';
+  if(withPlat){
+    try{ const p = (await tm(`/movie/${r.id}/watch/providers`)).results?.[REGION];
+      platform = p?.flatrate?.[0]?.provider_name || p?.free?.[0]?.provider_name || ''; }catch(e){}
+  }
+  const name = (g[r.genre_ids?.[0]] || '');
+  return { id: 'tmdb' + r.id, title: r.title, year: (r.release_date || '').slice(0,4), genre: name.charAt(0).toUpperCase() + name.slice(1),
+    platform, poster: r.poster_path ? IMG + 'w342' + r.poster_path : '', on: true };
+}
+function addMovie(m){
+  if(movies.some(x => x.id === m.id || (x.title === m.title && x.year === m.year))) return false;
+  movies.push(m); return true;
+}
+function setKeyUI(){ $('#tTools').hidden = !tkey; $('#tKey').value = ''; $('#tKey').placeholder = tkey ? 'Clave guardada ✓ (pega otra para cambiarla)' : 'Tu clave de TMDB (API key o token)'; }
+$('#tSave').onclick = async () => {
+  const v = $('#tKey').value.trim();
+  if(!v){ if(tkey && confirm('¿Borrar la clave guardada?')){ tkey = ''; localStorage.removeItem(TK); setKeyUI(); tStatus('Clave borrada.'); } return; }
+  const old = tkey; tkey = v; tGenres = null;
+  try{ await genreMap(); localStorage.setItem(TK, v); setKeyUI(); tStatus('Clave correcta ✓'); }
+  catch(e){ tkey = old; tStatus(e.message === 'Failed to fetch' ? 'Sin conexión con TMDB.' : e.message, true); }
+};
+$('#tQuery').oninput = e => {
+  clearTimeout(tTimer); const q = e.target.value.trim(), ul = $('#tResults');
+  if(q.length < 2){ ul.innerHTML = ''; return; }
+  tTimer = setTimeout(async () => {
+    try{
+      const d = await tm('/search/movie', { query: q, include_adult: 'false' }); ul.innerHTML = '';
+      if(!d.results.length) ul.innerHTML = '<li class="empty">Sin resultados</li>';
+      d.results.slice(0,6).forEach(r => {
+        const li = document.createElement('li'); li.style.setProperty('--c', '#f4c95d');
+        li.innerHTML = `${r.poster_path ? `<img class="th" src="${IMG}w92${r.poster_path}" alt="">` : ''}<div class="t"><b>${esc(r.title)}</b><small>${esc((r.release_date||'').slice(0,4))}</small></div><button type="button" aria-label="Añadir ${esc(r.title)}">＋</button>`;
+        li.querySelector('button').onclick = async ev => {
+          ev.target.disabled = true;
+          try{ const m = await toMovie(r, true); tStatus(addMovie(m) ? `Añadida: ${m.title}` : 'Ya estaba en la lista.'); save(); render(); }
+          catch(e){ tStatus(e.message, true); }
+          ev.target.disabled = false;
+        };
+        ul.appendChild(li);
+      });
+    }catch(e){ tStatus(e.message === 'Failed to fetch' ? 'Sin conexión con TMDB.' : e.message, true); }
+  }, 350);
+};
+async function bulk(kind, btn){
+  btn.disabled = true; tStatus('Buscando…');
+  try{
+    const d = await tm('/movie/' + kind, { page: 1 + Math.floor(Math.random()*5), region: REGION });
+    let n = 0;
+    for(const r of d.results.sort(() => Math.random()-0.5).slice(0,10)){ if(addMovie(await toMovie(r, false))) n++; }
+    save(); render(); tStatus(`${n} películas añadidas.`);
+  }catch(e){ tStatus(e.message === 'Failed to fetch' ? 'Sin conexión con TMDB.' : e.message, true); }
+  btn.disabled = false;
+}
+$('#tPop').onclick = e => bulk('popular', e.target);
+$('#tTop').onclick = e => bulk('top_rated', e.target);
+setKeyUI();
 new ResizeObserver(size).observe(canvas);
 render(); size();
 })();

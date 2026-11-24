@@ -46,6 +46,24 @@
       <datalist id="genres"></datalist><datalist id="plats"></datalist>
       <button class="btn gold" type="submit">+ Añadir peli</button>
     </form>
+    <details class="tmdb" id="tmdb">
+      <summary>🎞 Buscar películas online (TMDB, opcional)</summary>
+      <div class="tmdb-body">
+        <div class="keyrow">
+          <input id="tKey" type="password" placeholder="Tu clave de TMDB (API key o token)" autocomplete="off" spellcheck="false">
+          <button class="btn ghost" id="tSave" type="button">Guardar</button>
+        </div>
+        <p class="hint" id="tStatus">Sin clave la web funciona igual. La clave se guarda solo en este navegador.</p>
+        <div id="tTools" hidden>
+          <input id="tQuery" type="search" placeholder="Busca un título…" autocomplete="off">
+          <ul id="tResults" class="list tres"></ul>
+          <div class="tools">
+            <button class="btn ghost" id="tPop" type="button">+10 populares</button>
+            <button class="btn ghost" id="tTop" type="button">+10 mejor valoradas</button>
+          </div>
+        </div>
+      </div>
+    </details>
     <ul id="list" class="list"></ul>
     <div class="tools">
       <button class="btn ghost" id="restore" type="button">Restaurar ejemplos</button>
@@ -54,6 +72,7 @@
   </aside>
 </main>
 
+<footer class="foot">Datos y pósters opcionales de <b>TMDB</b>. Esta web usa la API de TMDB pero no está avalada ni certificada por TMDB.</footer>
 <div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="wTitle">
   <canvas id="confetti"></canvas>
   <div class="card">
@@ -61,6 +80,7 @@
     <div class="poster" id="wPoster"></div>
     <h3 id="wTitle"></h3>
     <p id="wMeta" class="meta"></p>
+    <section class="where" id="wWhere" aria-live="polite"></section>
     <div class="actions">
       <button class="btn gold" id="again">Girar otra vez</button>
       <button class="btn red" id="removeSpin">Quitar y girar</button>
