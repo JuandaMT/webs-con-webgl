@@ -12,7 +12,7 @@ try { Object.assign(state, JSON.parse(localStorage.getItem(STORE) || '{}')); } c
 const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} };
 
 /* ---------- Navegación ---------- */
-const views = ['setup', 'done', 'links', 'room'];
+const views = ['setup', 'done', 'room'];
 function show(name) {
   views.forEach(v => $(v).hidden = v !== name);
   window.scrollTo(0, 0);
@@ -145,34 +145,50 @@ $('drawBtn').onclick = () => {
   show('done');
 };
 $('redoBtn').onclick = () => { result = null; show('setup'); };
-document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => show('done'));
 
 /* ---------- Habitación ---------- */
 Room.init($('roomCv'));
-const B64 = 'data:image/jpeg;base64,';
-let rc = null;   // contexto: { mode, cast, giftOf, ev, pending, doneFn }
+const K = 'amigo-invisible:';
+let rc = null;      // { mode, cast, giftOf, ev, id, admin, me, pending, doneFn }
+let poll = 0;
+const facePhoto = n => validPhoto(state.photos[n]) ? state.photos[n] : '';
+const api = (path, body) => fetch('/api/' + path, body === undefined ? {} : { method: 'POST', body: JSON.stringify(body) });
+function token() { let t = localStorage.getItem(K + 'tok'); if (!t) { t = crypto.randomUUID() + crypto.randomUUID(); localStorage.setItem(K + 'tok', t); } return t; }
 
-function openRoom(mode, cast, giftOf, ev, me) {
-  rc = { mode, cast, giftOf, ev, pending: null, doneFn: null };
+function openRoom(o) {
+  clearInterval(poll);
+  rc = { ...o, pending: null, doneFn: null, me: null };
+  seen = new Set();
   $('wrap').classList.add('wide');
-  if (ev.name) $('title').textContent = ev.name;
+  if (o.ev.name) $('title').textContent = o.ev.name;
   show('room');
-  $('roomResult').hidden = true; $('roomDone').hidden = true; $('whoConfirm').hidden = true;
-  $('roomBack').hidden = mode !== 'pass';
-  if (mode === 'pass') {
-    Room.open(cast, { onPick: askWho }, 'pick');
-    renderWho(); setHint();
-  } else {
-    $('whoList').innerHTML = '';
-    Room.open(cast, {}, 'free');
-    $('roomHint').textContent = `Hola, ${cast[me].n}. Quédate quieto un momento…`;
-    setTimeout(() => meet(me), 1800);
+  ['roomResult', 'whoConfirm', 'roomPhoto', 'adminBox'].forEach(id => $(id).hidden = true);
+  $('roomDone').hidden = true;
+  $('roomBack').hidden = o.mode === 'online';
+  if (o.mode === 'online') {
+    const m = localStorage.getItem(K + 'me:' + o.id);
+    const i = m === null ? -1 : o.cast.findIndex(c => c.n === m);
+    rc.me = i >= 0 ? i : null;
+    rc.cast.forEach(c => { if (c.claimed) seen.add(c.n); });
+    rc.admin = localStorage.getItem(K + 'admin:' + o.id);
+  }
+  Room.open(o.cast, { onPick: askWho }, 'pick');
+  rc.cast.forEach((c, i) => { if (seen.has(c.n)) Room.setSeen(i); });
+  renderWho(); setHint();
+  if (o.mode === 'online') {
+    $('roomPhoto').hidden = rc.me === null;
+    renderAdmin();
+    poll = setInterval(refresh, 8000);
   }
 }
 
-function setHint() {
-  const all = rc.cast.every((_, i) => seen.has(rc.cast[i].n));
-  $('roomHint').textContent = all ? '¡Todos listos! 🎉 Ya pueden salir de la habitación.' : '¿Quién eres? Toca tu avatar o tu nombre.';
+function setHint(msg) {
+  if (msg) { $('roomHint').textContent = msg; return; }
+  if (rc.mode === 'pass') {
+    $('roomHint').textContent = rc.cast.every(c => seen.has(c.n)) ? '¡Todos listos! 🎉 Ya pueden salir de la habitación.' : '¿Quién eres? Toca tu avatar o tu nombre.';
+  } else {
+    $('roomHint').textContent = rc.me !== null ? `Hola, ${rc.cast[rc.me].n}. Toca tu avatar para que tu amigo invisible venga a contártelo.` : '¿Quién eres? Toca tu avatar o tu nombre.';
+  }
 }
 function renderWho() {
   const ul = $('whoList'); ul.innerHTML = ''; ul.hidden = false;
@@ -184,100 +200,149 @@ function renderWho() {
   });
 }
 function askWho(i) {
-  if (!rc || rc.mode !== 'pass' || seen.has(rc.cast[i].n)) return;
+  if (!rc || !$('whoList').offsetParent) return;
+  const p = rc.cast[i];
+  if (rc.mode === 'pass') { if (seen.has(p.n)) return; }
+  else {
+    if (rc.me !== null && rc.me !== i) { setHint(`Este móvil ya es ${rc.cast[rc.me].n}. Si no eres tú, entra desde tu propio dispositivo.`); return; }
+    if (rc.me === i) { claim(i); return; }
+    if (seen.has(p.n)) { setHint(`«${p.n}» ya lo ha abierto otra persona. Si eres tú, pídele al organizador que lo libere.`); return; }
+  }
   rc.pending = i;
-  $('whoQ').textContent = `¿Eres ${rc.cast[i].n}?`;
+  $('whoQ').textContent = `¿Eres ${p.n}?`;
   $('whoConfirm').hidden = false;
 }
 $('whoNo').onclick = () => { $('whoConfirm').hidden = true; rc.pending = null; };
 $('whoYes').onclick = () => {
-  const i = rc.pending; $('whoConfirm').hidden = true; $('whoList').hidden = true;
-  meet(i);
+  const i = rc.pending; $('whoConfirm').hidden = true;
+  if (rc.mode === 'pass') { $('whoList').hidden = true; meet(i); } else claim(i);
 };
+
+async function claim(i) {
+  $('whoList').hidden = true; setHint('Un momento…');
+  try {
+    const r = await api('claim/' + rc.id, { i, token: token() });
+    if (r.status === 409) {
+      seen.add(rc.cast[i].n); Room.setSeen(i); renderWho();
+      setHint(`«${rc.cast[i].n}» ya lo ha abierto otra persona. Si eres tú, pídele al organizador que lo libere.`); return;
+    }
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    rc.me = i; localStorage.setItem(K + 'me:' + rc.id, rc.cast[i].n);
+    rc.giftOf[i] = rc.cast.findIndex(c => c.n === d.gift);
+    meet(i);
+  } catch (e) { renderWho(); setHint('No he podido conectar con el servidor. Inténtalo otra vez.'); }
+}
 
 function meet(me) {
   const g = rc.giftOf[me], you = rc.cast[me], other = rc.cast[g];
-  $('roomHint').textContent = `${other.n} viene a contártelo…`;
+  setHint(`${other.n} viene a contártelo…`);
   Room.encounter(me, g, `¡Hola ${you.n}! Soy ${other.n}. ¡Te ha tocado regalarme a mí! 🎁`, () => {
     fillFace($('roomFace'), other.p, other.n);
     $('roomName').textContent = other.n;
-    $('roomMeta').textContent = [rc.ev.b && `Presupuesto: ${rc.ev.b}`, rc.ev.d && `Fecha: ${rc.ev.d}`].filter(Boolean).join(' · ');
-    $('roomResult').hidden = false;
-    $('roomDone').textContent = rc.mode === 'pass' ? 'Entendido, ocultar' : 'Ver otra vez';
-    $('roomDone').hidden = false;
+    $('roomMeta').textContent = [rc.ev.budget && `Presupuesto: ${rc.ev.budget}`, rc.ev.date && `Fecha: ${rc.ev.date}`].filter(Boolean).join(' · ');
+    $('roomResult').hidden = false; $('roomDone').hidden = false;
     rc.doneFn = () => {
       $('roomResult').hidden = true; $('roomDone').hidden = true;
-      if (rc.mode === 'pass') {
-        seen.add(you.n); Room.setSeen(me);
-        Room.endEncounter('pick'); renderWho(); setHint();
-      } else { Room.endEncounter('free'); setTimeout(() => meet(me), 700); $('roomHint').textContent = 'Otra vez…'; }
+      seen.add(you.n); Room.setSeen(me);
+      Room.endEncounter('pick'); renderWho();
+      if (rc.mode === 'online') {
+        $('roomPhoto').hidden = false; renderAdmin();
+        setHint(you.p ? `Hola, ${you.n}. Toca tu avatar para ver otra vez a tu amigo invisible.` : '¡Ponte tu foto para que te reconozcan! 📷');
+      } else setHint();
     };
   });
 }
 $('roomDone').onclick = () => rc && rc.doneFn && rc.doneFn();
 $('roomBack').onclick = leaveRoom;
 function leaveRoom() {
-  Room.close(); $('wrap').classList.remove('wide'); $('title').innerHTML = '¿A quién te <em>toca?</em>'; rc = null; show('done');
+  clearInterval(poll); Room.close(); $('wrap').classList.remove('wide');
+  $('title').innerHTML = '¿A quién te <em>toca?</em>'; rc = null; show('done');
 }
 
-function facePhoto(n) { return validPhoto(state.photos[n]) ? state.photos[n] : ''; }
+/* ---------- Sala online ---------- */
 $('modePass').onclick = () => {
   const cast = state.people.map(n => ({ n, p: facePhoto(n) }));
-  openRoom('pass', cast, state.people.map(n => state.people.indexOf(result[n])), state.ev, null);
+  openRoom({ mode: 'pass', cast, giftOf: state.people.map(n => state.people.indexOf(result[n])), ev: { name: state.ev.name, budget: state.ev.budget, date: state.ev.date } });
 };
 
-/* ---------- Modo: enlaces ---------- */
-const encodeLink = o => encodeURIComponent(JSON.stringify(o)).replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());
+$('modeOnline').onclick = async () => {
+  const btn = $('modeOnline'); btn.disabled = true; $('doneMsg').textContent = 'Creando la sala…';
+  try {
+    const r = await api('create', { ev: state.ev, people: state.people.map(n => ({ n, p: facePhoto(n) })), ex: state.ex });
+    const d = await r.json();
+    if (!r.ok) { $('doneMsg').textContent = d.error || 'No se pudo crear la sala.'; return; }
+    localStorage.setItem(K + 'admin:' + d.id, d.admin);
+    location.hash = 's=' + d.id;      // hashchange recarga y entra en la sala
+  } catch (e) { $('doneMsg').textContent = 'No hay conexión con el servidor (¿estás abriendo la web publicada?).'; }
+  finally { btn.disabled = false; }
+};
 
-$('modeLinks').onclick = async () => {
-  const small = await Promise.all(state.people.map(n => Room.shrink(facePhoto(n), 48, 0.55)));
-  const c = state.people.map((n, i) => [n, small[i].slice(B64.length)]);
-  const ul = $('linkList'); ul.innerHTML = '';
-  const base = location.href.split('#')[0];
-  state.people.forEach((p, i) => {
-    const url = base + '#r=' + encodeLink({ c, m: i, t: state.people.indexOf(result[p]), e: state.ev.name, b: state.ev.budget, d: state.ev.date });
-    const li = document.createElement('li');
-    const name = document.createElement('b'); name.textContent = p;
-    const kb = document.createElement('span'); kb.className = 'note'; kb.textContent = Math.max(1, Math.round(url.length / 1024)) + ' KB';
-    const copy = document.createElement('button');
-    copy.className = 'btn ghost'; copy.type = 'button'; copy.textContent = 'Copiar';
-    copy.onclick = async () => {
-      try { await navigator.clipboard.writeText(url); copy.textContent = '¡Copiado!'; }
-      catch (e) { prompt('Copia el enlace:', url); }
-      setTimeout(() => copy.textContent = 'Copiar', 1500);
+async function refresh() {
+  if (!rc || rc.mode !== 'online') return;
+  try {
+    const r = await api('game/' + rc.id); if (!r.ok) return;
+    const d = await r.json();
+    d.people.forEach((p, i) => {
+      if (rc.cast[i].p !== p.p) { rc.cast[i].p = p.p; Room.setPhoto(i, p.p); }
+      rc.cast[i].claimed = p.claimed;
+      if (p.claimed && !seen.has(p.n)) { seen.add(p.n); Room.setSeen(i); }
+      else if (!p.claimed && seen.has(p.n) && i !== rc.me) { seen.delete(p.n); Room.setSeen(i, false); }
+    });
+    if (!$('whoList').hidden) renderWho();
+    renderAdmin();
+  } catch (e) {}
+}
+
+function renderAdmin() {
+  if (!rc || !rc.admin) return;
+  $('adminBox').hidden = false;
+  const url = location.href.split('#')[0] + '#s=' + rc.id;
+  $('shareUrl').value = url;
+  $('shareWa').href = 'https://wa.me/?text=' + encodeURIComponent(`🎁 ${rc.ev.name || 'Amigo invisible'}: entra, toca tu avatar y descubre a quién te toca: ${url}`);
+  const ul = $('adminList'); ul.innerHTML = '';
+  rc.cast.forEach((p, i) => {
+    const li = document.createElement('li'); li.className = 'rel' + (seen.has(p.n) ? '' : ' free');
+    li.textContent = (seen.has(p.n) ? '🔒 ' : '○ ') + p.n; li.title = seen.has(p.n) ? 'Pulsa para liberar' : 'Aún sin abrir';
+    if (seen.has(p.n)) li.onclick = async () => {
+      if (!confirm(`¿Liberar a ${p.n}? Podrá volver a abrirlo desde cualquier móvil.`)) return;
+      await api('release/' + rc.id, { i, admin: rc.admin });
+      seen.delete(p.n); rc.cast[i].claimed = false; Room.setSeen(i, false); await refresh(); renderWho();
     };
-    const wa = document.createElement('a');
-    wa.className = 'btn'; wa.target = '_blank'; wa.rel = 'noopener'; wa.textContent = 'WhatsApp';
-    const msg = `🎁 ${state.ev.name || 'Amigo invisible'}: ${p}, entra en la habitación y mira a quién te toca (¡es secreto!): ${url}`;
-    wa.href = 'https://wa.me/?text=' + encodeURIComponent(msg);
-    li.append(name, kb, copy, wa); ul.append(li);
+    ul.append(li);
   });
-  show('links');
+}
+$('shareCopy').onclick = async () => {
+  try { await navigator.clipboard.writeText($('shareUrl').value); $('shareCopy').textContent = '¡Copiado!'; }
+  catch (e) { $('shareUrl').select(); }
+  setTimeout(() => $('shareCopy').textContent = 'Copiar', 1500);
+};
+
+$('roomPhoto').onclick = () => $('roomPhotoIn').click();
+$('roomPhotoIn').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f || !rc || rc.me === null) return;
+  try {
+    const bmp = await createImageBitmap(f);
+    const p = Room.squareJpeg(bmp, bmp.width, bmp.height, 96, 0.7);
+    const r = await api('photo/' + rc.id, { i: rc.me, token: token(), p });
+    if (!r.ok) throw new Error();
+    rc.cast[rc.me].p = p; Room.setPhoto(rc.me, p);
+    setHint('¡Foto cambiada! 😄');
+  } catch (err) { setHint('No he podido guardar la foto. Inténtalo otra vez.'); }
 };
 
 /* ---------- Arranque ---------- */
-function parseLink(raw) {
-  const d = JSON.parse(decodeURIComponent(raw));
-  const ok = Array.isArray(d.c) && d.c.length >= 3 && d.c.length <= 40 &&
-    d.c.every(x => Array.isArray(x) && typeof x[0] === 'string' && x[0].length <= 40 && typeof x[1] === 'string') &&
-    Number.isInteger(d.m) && Number.isInteger(d.t) && d.m !== d.t && d.m >= 0 && d.t >= 0 && d.m < d.c.length && d.t < d.c.length;
-  if (!ok) throw new Error('bad');
-  const str = v => typeof v === 'string' ? v.slice(0, 40) : '';
-  return {
-    cast: d.c.map(([n, p]) => ({ n, p: p && validPhoto(B64 + p) ? B64 + p : '' })),
-    me: d.m, t: d.t, ev: { name: str(d.e), b: str(d.b), d: str(d.d) }
-  };
-}
-function boot() {
-  const m = location.hash.match(/^#r=(.+)$/);
+async function boot() {
+  const m = location.hash.match(/^#s=([a-z0-9]{8})$/);
   if (m) {
     try {
-      const d = parseLink(m[1]);
-      const giftOf = d.cast.map((_, i) => i === d.me ? d.t : -1);
-      openRoom('link', d.cast, giftOf, d.ev, d.me);
+      const r = await api('game/' + m[1]);
+      if (!r.ok) throw new Error();
+      const d = await r.json();
+      openRoom({ mode: 'online', id: m[1], cast: d.people, giftOf: [], ev: d.ev });
       return;
-    } catch (e) {}
-    $('title').textContent = 'Enlace no válido';
+    } catch (e) { $('title').textContent = 'Sala no encontrada'; }
   }
   renderSetup(); show('setup');
 }

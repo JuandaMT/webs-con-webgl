@@ -340,7 +340,8 @@ function open(people, handlers, mode) {
   if (!raf) { last = performance.now(); raf = requestAnimationFrame(loop); }
 }
 function close() { cancelAnimationFrame(raf); raf = 0; cast = []; me = gift = null; phase = 'idle'; }
-function setSeen(i) { if (cast[i]) cast[i].seen = true; }
+function setPhoto(i, p) { const a = cast[i]; if (!a) return; if (p) { a.img = new Image(); a.img.src = p; } else a.img = null; }
+function setSeen(i, v = true) { if (cast[i]) cast[i].seen = v; }
 function encounter(meIdx, giftIdx, say, done) {
   me = cast[meIdx]; gift = cast[giftIdx]; text = say; talkDone = false; onTalkDone = done; hover = null;
   gift.gx = clamp(me.x + (me.x < W - 2 ? 1.3 : -1.3), .5, W - .5);
@@ -352,5 +353,5 @@ function endEncounter(back) {
   me = gift = null; phase = back === 'pick' ? 'pick' : 'free';
 }
 
-return { init, open, close, setSeen, encounter, endEncounter, shrink, squareJpeg };
+return { init, open, close, setSeen, setPhoto, encounter, endEncounter, shrink, squareJpeg };
 })();

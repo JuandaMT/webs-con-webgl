@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex">
 <title>Amigo invisible</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect x='8' y='24' width='48' height='32' rx='4' fill='%23c8102e'/><rect x='28' y='24' width='8' height='32' fill='%23f4c95d'/><rect x='6' y='16' width='52' height='10' rx='3' fill='%23e5384f'/></svg>">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 <canvas id="snow" aria-hidden="true"></canvas>
@@ -56,37 +56,26 @@
     <p id="setupMsg" class="msg" role="alert"></p>
     <div class="row end">
       <button id="clearBtn" class="btn ghost" type="button">Vaciar todo</button>
-      <button id="drawBtn" class="btn big" type="button">🎁 Hacer el sorteo</button>
+      <button id="drawBtn" class="btn big" type="button">Continuar →</button>
     </div>
   </section>
 
-  <!-- 2. ELEGIR CÓMO REPARTIR -->
+  <!-- 2. ELEGIR CÓMO JUGAR -->
   <section id="done" class="card" hidden>
-    <h2>¡Sorteo hecho!</h2>
-    <p class="muted">Nadie ha visto nada todavía. Elige cómo repartir los resultados:</p>
+    <h2>¿Cómo lo jugáis?</h2>
     <div class="grid2">
+      <button id="modeOnline" class="mode" type="button">
+        <strong>🌐 Crear sala para mis amigos</strong>
+        <span>Cada uno entra con el enlace, ve a todos en la habitación, toca su avatar, puede cambiarse la foto y su amigo invisible viene a contárselo. El sorteo lo hace el servidor: ni tú sabrás quién le toca a quién.</span>
+      </button>
       <button id="modePass" class="mode" type="button">
         <strong>📱 Pasar el móvil</strong>
-        <span>Todos en la misma habitación: cada uno elige quién es y su amigo invisible viene a contárselo.</span>
-      </button>
-      <button id="modeLinks" class="mode" type="button">
-        <strong>🔗 Enviar enlaces</strong>
-        <span>Un enlace privado por persona (WhatsApp, etc.) para verlo cada uno en su móvil.</span>
+        <span>Todos juntos con un solo dispositivo, sin conexión.</span>
       </button>
     </div>
+    <p id="doneMsg" class="msg" role="alert"></p>
     <div class="row end">
-      <button id="redoBtn" class="btn ghost" type="button">← Volver y repetir sorteo</button>
-    </div>
-  </section>
-
-  <!-- 3b. ENLACES -->
-  <section id="links" class="card" hidden>
-    <h2>Enlaces privados</h2>
-    <p class="muted">Cada enlace solo enseña a quién le toca a esa persona. <strong>No abras los enlaces de los demás</strong> si quieres que sea sorpresa.</p>
-    <ul id="linkList" class="links"></ul>
-    <p class="note">Para que los enlaces funcionen en otros móviles, esta web tiene que estar publicada online (ver LEEME).</p>
-    <div class="row end">
-      <button class="btn ghost" data-back type="button">← Atrás</button>
+      <button id="redoBtn" class="btn ghost" type="button">← Volver</button>
     </div>
   </section>
 
@@ -107,14 +96,25 @@
       <p id="roomMeta" class="muted"></p>
       <p class="note">Shhh… es un secreto 🤫</p>
     </div>
+    <input id="roomPhotoIn" type="file" accept="image/*" hidden>
+    <div id="adminBox" class="admin" hidden>
+      <h3>Organizador</h3>
+      <p class="muted">Pasa este enlace a tus amigos:</p>
+      <div class="row"><input id="shareUrl" type="text" readonly aria-label="Enlace de la sala">
+        <button id="shareCopy" class="btn" type="button">Copiar</button>
+        <a id="shareWa" class="btn" target="_blank" rel="noopener">WhatsApp</a></div>
+      <p class="note">Si alguien abrió su nombre por error o cambia de móvil, pulsa su nombre para <b>liberarlo</b>:</p>
+      <ul id="adminList" class="chips"></ul>
+    </div>
     <div class="row end">
+      <button id="roomPhoto" class="btn ghost" type="button" hidden>📷 Cambiar mi foto</button>
       <button id="roomBack" class="btn ghost" type="button">← Salir</button>
       <button id="roomDone" class="btn" type="button" hidden>Entendido, ocultar</button>
     </div>
   </section>
 </main>
 
-<script src="room.js"></script>
-<script src="app.js"></script>
+<script src="room.js?v=3"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>

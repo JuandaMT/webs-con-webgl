@@ -35,13 +35,15 @@
     },
     {
       "name": "amigo-invisible",
-      "runtimeExecutable": "python3",
+      "runtimeExecutable": "netlify",
       "runtimeArgs": [
-        "-m",
-        "http.server",
+        "dev",
+        "--cwd",
+        "amigo-invisible",
+        "--port",
         "5176",
-        "--directory",
-        "amigo-invisible"
+        "--no-open",
+        "--offline"
       ],
       "port": 5176
     }

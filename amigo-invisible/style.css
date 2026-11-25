@@ -104,3 +104,9 @@ summary{cursor:pointer;font-weight:600}
 .confirm{justify-content:center;margin-top:12px;font-weight:600}
 #whoList{justify-content:center}
 .result.center .face{margin:8px auto}
+
+.admin{margin-top:16px;border-top:1px solid var(--line);padding-top:8px}
+.admin h3{margin:.6em 0 .2em;font:600 1.05rem Georgia,serif}
+.admin .row input{flex:1}
+.chips li.rel{padding:6px 12px;cursor:pointer}
+.chips li.rel.free{opacity:.5}
