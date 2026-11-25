@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex">
 <title>Amigo invisible</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect x='8' y='24' width='48' height='32' rx='4' fill='%23c8102e'/><rect x='28' y='24' width='8' height='32' fill='%23f4c95d'/><rect x='6' y='16' width='52' height='10' rx='3' fill='%23e5384f'/></svg>">
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 <canvas id="snow" aria-hidden="true"></canvas>
@@ -66,7 +66,7 @@
     <div class="grid2">
       <button id="modeOnline" class="mode" type="button">
         <strong>🌐 Crear sala para mis amigos</strong>
-        <span>Cada uno entra con el enlace, ve a todos en la habitación, toca su avatar, puede cambiarse la foto y su amigo invisible viene a contárselo. El sorteo lo hace el servidor: ni tú sabrás quién le toca a quién.</span>
+        <span>Cada uno tiene su enlace personal: ve a todos en la habitación, se pone mote y foto, y su amigo invisible viene a contárselo. El sorteo lo hace el servidor: ni tú sabrás quién le toca a quién.</span>
       </button>
       <button id="modePass" class="mode" type="button">
         <strong>📱 Pasar el móvil</strong>
@@ -97,24 +97,26 @@
       <p class="note">Shhh… es un secreto 🤫</p>
     </div>
     <input id="roomPhotoIn" type="file" accept="image/*" hidden>
+    <button id="revealBtn" class="btn big center-btn" type="button" hidden>🎁 Ver a quién me toca</button>
+    <div id="profileBox" class="admin" hidden>
+      <h3>Tu perfil</h3>
+      <div class="row"><input id="nickIn" type="text" maxlength="20" placeholder="Tu mote (opcional)" autocomplete="off" aria-label="Tu mote">
+        <button id="nickSave" class="btn" type="button">Guardar</button></div>
+      <div class="row end"><button id="roomPhoto" class="btn ghost" type="button">📷 Cambiar mi foto</button></div>
+    </div>
     <div id="adminBox" class="admin" hidden>
-      <h3>Organizador</h3>
-      <p class="muted">Pasa este enlace a tus amigos:</p>
-      <div class="row"><input id="shareUrl" type="text" readonly aria-label="Enlace de la sala">
-        <button id="shareCopy" class="btn" type="button">Copiar</button>
-        <a id="shareWa" class="btn" target="_blank" rel="noopener">WhatsApp</a></div>
-      <p class="note">Si alguien abrió su nombre por error o cambia de móvil, pulsa su nombre para <b>liberarlo</b>:</p>
-      <ul id="adminList" class="chips"></ul>
+      <h3>Organizador: enlaces personales</h3>
+      <p class="muted">Manda a cada persona <b>su</b> enlace. Solo sirve para esa persona.</p>
+      <ul id="linkList" class="links"></ul>
     </div>
     <div class="row end">
-      <button id="roomPhoto" class="btn ghost" type="button" hidden>📷 Cambiar mi foto</button>
       <button id="roomBack" class="btn ghost" type="button">← Salir</button>
       <button id="roomDone" class="btn" type="button" hidden>Entendido, ocultar</button>
     </div>
   </section>
 </main>
 
-<script src="room.js?v=3"></script>
-<script src="app.js?v=3"></script>
+<script src="room.js?v=4"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

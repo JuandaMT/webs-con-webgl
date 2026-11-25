@@ -149,35 +149,31 @@ $('redoBtn').onclick = () => { result = null; show('setup'); };
 /* ---------- Habitación ---------- */
 Room.init($('roomCv'));
 const K = 'amigo-invisible:';
-let rc = null;      // { mode, cast, giftOf, ev, id, admin, me, pending, doneFn }
+let rc = null;      // { mode, cast, giftOf, ev, id, key, me, admin, pending, doneFn }
 let poll = 0;
+const lab = c => c.nick || c.n;
 const facePhoto = n => validPhoto(state.photos[n]) ? state.photos[n] : '';
 const api = (path, body) => fetch('/api/' + path, body === undefined ? {} : { method: 'POST', body: JSON.stringify(body) });
-function token() { let t = localStorage.getItem(K + 'tok'); if (!t) { t = crypto.randomUUID() + crypto.randomUUID(); localStorage.setItem(K + 'tok', t); } return t; }
 
 function openRoom(o) {
   clearInterval(poll);
-  rc = { ...o, pending: null, doneFn: null, me: null };
+  rc = { ...o, pending: null, doneFn: null };
   seen = new Set();
   $('wrap').classList.add('wide');
   if (o.ev.name) $('title').textContent = o.ev.name;
   show('room');
-  ['roomResult', 'whoConfirm', 'roomPhoto', 'adminBox'].forEach(id => $(id).hidden = true);
-  $('roomDone').hidden = true;
-  $('roomBack').hidden = o.mode === 'online';
-  if (o.mode === 'online') {
-    const m = localStorage.getItem(K + 'me:' + o.id);
-    const i = m === null ? -1 : o.cast.findIndex(c => c.n === m);
-    rc.me = i >= 0 ? i : null;
-    rc.cast.forEach(c => { if (c.claimed) seen.add(c.n); });
-    rc.admin = localStorage.getItem(K + 'admin:' + o.id);
-  }
+  ['roomResult', 'whoConfirm', 'revealBtn', 'profileBox', 'adminBox', 'roomDone'].forEach(id => $(id).hidden = true);
+  const online = o.mode === 'online';
+  $('roomBack').hidden = online;
+  if (online) rc.cast.forEach(c => { if (c.opened) seen.add(c.n); });
   Room.open(o.cast, { onPick: askWho }, 'pick');
   rc.cast.forEach((c, i) => { if (seen.has(c.n)) Room.setSeen(i); });
-  renderWho(); setHint();
-  if (o.mode === 'online') {
-    $('roomPhoto').hidden = rc.me === null;
-    renderAdmin();
+  if (online && rc.me !== null) Room.setMine(rc.me);
+  if (online) { $('whoList').hidden = true; $('whoList').innerHTML = ''; } else renderWho();
+  setHint();
+  if (online) {
+    if (rc.me !== null) { $('profileBox').hidden = false; $('revealBtn').hidden = false; $('nickIn').value = rc.cast[rc.me].nick || ''; }
+    if (rc.admin) renderAdmin();
     poll = setInterval(refresh, 8000);
   }
 }
@@ -186,8 +182,10 @@ function setHint(msg) {
   if (msg) { $('roomHint').textContent = msg; return; }
   if (rc.mode === 'pass') {
     $('roomHint').textContent = rc.cast.every(c => seen.has(c.n)) ? '¡Todos listos! 🎉 Ya pueden salir de la habitación.' : '¿Quién eres? Toca tu avatar o tu nombre.';
+  } else if (rc.me !== null) {
+    $('roomHint').textContent = `Hola, ${rc.cast[rc.me].n}. Tu avatar es el de la flecha dorada. Ponte mote y foto, y descubre a quién te toca.`;
   } else {
-    $('roomHint').textContent = rc.me !== null ? `Hola, ${rc.cast[rc.me].n}. Toca tu avatar para que tu amigo invisible venga a contártelo.` : '¿Quién eres? Toca tu avatar o tu nombre.';
+    $('roomHint').textContent = rc.admin ? 'Vista de organizador: aquí abajo tienes los enlaces personales.' : 'Estás viendo la sala. Usa tu enlace personal para ver a quién te toca.';
   }
 }
 function renderWho() {
@@ -200,56 +198,47 @@ function renderWho() {
   });
 }
 function askWho(i) {
-  if (!rc || !$('whoList').offsetParent) return;
-  const p = rc.cast[i];
-  if (rc.mode === 'pass') { if (seen.has(p.n)) return; }
-  else {
-    if (rc.me !== null && rc.me !== i) { setHint(`Este móvil ya es ${rc.cast[rc.me].n}. Si no eres tú, entra desde tu propio dispositivo.`); return; }
-    if (rc.me === i) { claim(i); return; }
-    if (seen.has(p.n)) { setHint(`«${p.n}» ya lo ha abierto otra persona. Si eres tú, pídele al organizador que lo libere.`); return; }
+  if (!rc || !$('roomResult').hidden) return;
+  if (rc.mode === 'online') {
+    if (rc.me === i) reveal();
+    else setHint(rc.me !== null ? 'Ese no eres tú: tu avatar es el de la flecha dorada 👆' : 'Necesitas tu enlace personal para ver a quién te toca.');
+    return;
   }
+  if (!$('whoList').offsetParent || seen.has(rc.cast[i].n)) return;
   rc.pending = i;
-  $('whoQ').textContent = `¿Eres ${p.n}?`;
+  $('whoQ').textContent = `¿Eres ${rc.cast[i].n}?`;
   $('whoConfirm').hidden = false;
 }
 $('whoNo').onclick = () => { $('whoConfirm').hidden = true; rc.pending = null; };
-$('whoYes').onclick = () => {
-  const i = rc.pending; $('whoConfirm').hidden = true;
-  if (rc.mode === 'pass') { $('whoList').hidden = true; meet(i); } else claim(i);
-};
+$('whoYes').onclick = () => { const i = rc.pending; $('whoConfirm').hidden = true; $('whoList').hidden = true; meet(i); };
+$('revealBtn').onclick = () => reveal();
 
-async function claim(i) {
-  $('whoList').hidden = true; setHint('Un momento…');
+async function reveal() {
+  if (rc.me === null || Room.busy()) return;
+  $('revealBtn').hidden = true; setHint('Un momento…');
   try {
-    const r = await api('claim/' + rc.id, { i, token: token() });
-    if (r.status === 409) {
-      seen.add(rc.cast[i].n); Room.setSeen(i); renderWho();
-      setHint(`«${rc.cast[i].n}» ya lo ha abierto otra persona. Si eres tú, pídele al organizador que lo libere.`); return;
-    }
+    const r = await api('reveal/' + rc.id, { key: rc.key });
     if (!r.ok) throw new Error();
     const d = await r.json();
-    rc.me = i; localStorage.setItem(K + 'me:' + rc.id, rc.cast[i].n);
-    rc.giftOf[i] = rc.cast.findIndex(c => c.n === d.gift);
-    meet(i);
-  } catch (e) { renderWho(); setHint('No he podido conectar con el servidor. Inténtalo otra vez.'); }
+    rc.giftOf[rc.me] = d.gift;
+    meet(rc.me);
+  } catch (e) { $('revealBtn').hidden = false; setHint('No he podido conectar con el servidor. Inténtalo otra vez.'); }
 }
 
 function meet(me) {
   const g = rc.giftOf[me], you = rc.cast[me], other = rc.cast[g];
-  setHint(`${other.n} viene a contártelo…`);
-  Room.encounter(me, g, `¡Hola ${you.n}! Soy ${other.n}. ¡Te ha tocado regalarme a mí! 🎁`, () => {
-    fillFace($('roomFace'), other.p, other.n);
-    $('roomName').textContent = other.n;
-    $('roomMeta').textContent = [rc.ev.budget && `Presupuesto: ${rc.ev.budget}`, rc.ev.date && `Fecha: ${rc.ev.date}`].filter(Boolean).join(' · ');
+  setHint(`${lab(other)} viene a contártelo…`);
+  Room.encounter(me, g, `¡Hola ${lab(you)}! Soy ${lab(other)}. ¡Te ha tocado regalarme a mí! 🎁`, () => {
+    fillFace($('roomFace'), other.p, lab(other));
+    $('roomName').textContent = lab(other);
+    $('roomMeta').textContent = [other.nick && `Es ${other.n}`, rc.ev.budget && `Presupuesto: ${rc.ev.budget}`, rc.ev.date && `Fecha: ${rc.ev.date}`].filter(Boolean).join(' · ');
     $('roomResult').hidden = false; $('roomDone').hidden = false;
     rc.doneFn = () => {
       $('roomResult').hidden = true; $('roomDone').hidden = true;
       seen.add(you.n); Room.setSeen(me);
-      Room.endEncounter('pick'); renderWho();
-      if (rc.mode === 'online') {
-        $('roomPhoto').hidden = false; renderAdmin();
-        setHint(you.p ? `Hola, ${you.n}. Toca tu avatar para ver otra vez a tu amigo invisible.` : '¡Ponte tu foto para que te reconozcan! 📷');
-      } else setHint();
+      Room.endEncounter('pick');
+      if (rc.mode === 'online') { $('revealBtn').textContent = '🎁 Ver otra vez'; $('revealBtn').hidden = false; setHint(); }
+      else { renderWho(); setHint(); }
     };
   });
 }
@@ -263,7 +252,7 @@ function leaveRoom() {
 /* ---------- Sala online ---------- */
 $('modePass').onclick = () => {
   const cast = state.people.map(n => ({ n, p: facePhoto(n) }));
-  openRoom({ mode: 'pass', cast, giftOf: state.people.map(n => state.people.indexOf(result[n])), ev: { name: state.ev.name, budget: state.ev.budget, date: state.ev.date } });
+  openRoom({ mode: 'pass', cast, giftOf: state.people.map(n => state.people.indexOf(result[n])), ev: { name: state.ev.name, budget: state.ev.budget, date: state.ev.date }, me: null });
 };
 
 $('modeOnline').onclick = async () => {
@@ -284,39 +273,52 @@ async function refresh() {
     const r = await api('game/' + rc.id); if (!r.ok) return;
     const d = await r.json();
     d.people.forEach((p, i) => {
-      if (rc.cast[i].p !== p.p) { rc.cast[i].p = p.p; Room.setPhoto(i, p.p); }
-      rc.cast[i].claimed = p.claimed;
-      if (p.claimed && !seen.has(p.n)) { seen.add(p.n); Room.setSeen(i); }
-      else if (!p.claimed && seen.has(p.n) && i !== rc.me) { seen.delete(p.n); Room.setSeen(i, false); }
+      const c = rc.cast[i];
+      if (i !== rc.me || $('roomResult').hidden) {   // no pisar lo que estoy editando
+        if (c.p !== p.p) { c.p = p.p; Room.setPhoto(i, p.p); }
+        if ((c.nick || '') !== p.nick) { c.nick = p.nick; Room.setProfile(i, { nick: p.nick }); }
+      }
+      if (p.opened && !seen.has(p.n)) { seen.add(p.n); Room.setSeen(i); }
     });
-    if (!$('whoList').hidden) renderWho();
-    renderAdmin();
   } catch (e) {}
 }
 
-function renderAdmin() {
-  if (!rc || !rc.admin) return;
-  $('adminBox').hidden = false;
-  const url = location.href.split('#')[0] + '#s=' + rc.id;
-  $('shareUrl').value = url;
-  $('shareWa').href = 'https://wa.me/?text=' + encodeURIComponent(`🎁 ${rc.ev.name || 'Amigo invisible'}: entra, toca tu avatar y descubre a quién te toca: ${url}`);
-  const ul = $('adminList'); ul.innerHTML = '';
-  rc.cast.forEach((p, i) => {
-    const li = document.createElement('li'); li.className = 'rel' + (seen.has(p.n) ? '' : ' free');
-    li.textContent = (seen.has(p.n) ? '🔒 ' : '○ ') + p.n; li.title = seen.has(p.n) ? 'Pulsa para liberar' : 'Aún sin abrir';
-    if (seen.has(p.n)) li.onclick = async () => {
-      if (!confirm(`¿Liberar a ${p.n}? Podrá volver a abrirlo desde cualquier móvil.`)) return;
-      await api('release/' + rc.id, { i, admin: rc.admin });
-      seen.delete(p.n); rc.cast[i].claimed = false; Room.setSeen(i, false); await refresh(); renderWho();
-    };
-    ul.append(li);
-  });
+async function renderAdmin() {
+  try {
+    const r = await api('links/' + rc.id, { admin: rc.admin });
+    if (!r.ok) return;
+    const { keys } = await r.json();
+    const ul = $('linkList'); ul.innerHTML = '';
+    const base = location.href.split('#')[0];
+    rc.cast.forEach((p, i) => {
+      const url = `${base}#s=${rc.id}&k=${keys[i]}`;
+      const li = document.createElement('li');
+      const name = document.createElement('b'); name.textContent = p.n;
+      const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'btn ghost'; copy.textContent = 'Copiar';
+      copy.onclick = async () => {
+        try { await navigator.clipboard.writeText(url); copy.textContent = '¡Copiado!'; } catch (e) { prompt('Copia el enlace:', url); }
+        setTimeout(() => copy.textContent = 'Copiar', 1500);
+      };
+      const wa = document.createElement('a'); wa.className = 'btn'; wa.target = '_blank'; wa.rel = 'noopener'; wa.textContent = 'WhatsApp';
+      wa.href = 'https://wa.me/?text=' + encodeURIComponent(`🎁 ${rc.ev.name || 'Amigo invisible'}: ${p.n}, este es tu enlace personal (no lo compartas). Entra, ponte mote y foto, y descubre a quién te toca: ${url}`);
+      li.append(name, copy, wa); ul.append(li);
+    });
+    $('adminBox').hidden = false;
+  } catch (e) {}
 }
-$('shareCopy').onclick = async () => {
-  try { await navigator.clipboard.writeText($('shareUrl').value); $('shareCopy').textContent = '¡Copiado!'; }
-  catch (e) { $('shareUrl').select(); }
-  setTimeout(() => $('shareCopy').textContent = 'Copiar', 1500);
+
+$('nickSave').onclick = async () => {
+  if (!rc || rc.me === null) return;
+  const nick = $('nickIn').value.trim().slice(0, 20);
+  try {
+    const r = await api('profile/' + rc.id, { key: rc.key, nick });
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    rc.cast[rc.me].nick = d.nick; Room.setProfile(rc.me, { nick: d.nick });
+    setHint(d.nick ? `¡Ahora eres «${d.nick}»! 😎` : 'Mote quitado.');
+  } catch (e) { setHint('No he podido guardar el mote. Inténtalo otra vez.'); }
 };
+$('nickIn').onkeydown = e => { if (e.key === 'Enter') $('nickSave').click(); };
 
 $('roomPhoto').onclick = () => $('roomPhotoIn').click();
 $('roomPhotoIn').onchange = async e => {
@@ -325,7 +327,7 @@ $('roomPhotoIn').onchange = async e => {
   try {
     const bmp = await createImageBitmap(f);
     const p = Room.squareJpeg(bmp, bmp.width, bmp.height, 96, 0.7);
-    const r = await api('photo/' + rc.id, { i: rc.me, token: token(), p });
+    const r = await api('profile/' + rc.id, { key: rc.key, p });
     if (!r.ok) throw new Error();
     rc.cast[rc.me].p = p; Room.setPhoto(rc.me, p);
     setHint('¡Foto cambiada! 😄');
@@ -334,13 +336,19 @@ $('roomPhotoIn').onchange = async e => {
 
 /* ---------- Arranque ---------- */
 async function boot() {
-  const m = location.hash.match(/^#s=([a-z0-9]{8})$/);
-  if (m) {
+  const q = new URLSearchParams(location.hash.slice(1));
+  const id = q.get('s');
+  if (id && /^[a-z0-9]{8}$/.test(id)) {
     try {
-      const r = await api('game/' + m[1]);
+      let key = q.get('k'), admin = q.get('a');
+      if (admin) { localStorage.setItem(K + 'admin:' + id, admin); history.replaceState(null, '', '#s=' + id + (key ? '&k=' + key : '')); }
+      if (key) localStorage.setItem(K + 'key:' + id, key); else key = localStorage.getItem(K + 'key:' + id);
+      const r = await api('game/' + id);
       if (!r.ok) throw new Error();
       const d = await r.json();
-      openRoom({ mode: 'online', id: m[1], cast: d.people, giftOf: [], ev: d.ev });
+      let me = null;
+      if (key) { const m = await api('me/' + id, { key }); if (m.ok) me = (await m.json()).i; }
+      openRoom({ mode: 'online', id, key: me === null ? null : key, me, admin: localStorage.getItem(K + 'admin:' + id), cast: d.people, giftOf: [], ev: d.ev });
       return;
     } catch (e) { $('title').textContent = 'Sala no encontrada'; }
   }

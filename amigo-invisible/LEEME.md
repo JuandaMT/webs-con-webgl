@@ -5,19 +5,19 @@ Sala online para sortear el amigo invisible entre amigos. Una habitación en per
 Producción: https://amigo-invisible-navidad-2026.netlify.app
 
 ## Cómo se juega
-1. **Organizador**: abre la web, pone evento/presupuesto/fecha, añade participantes (mín. 3), restricciones opcionales (parejas…) y, si quiere, fotos. «Continuar» → **Crear sala para mis amigos**.
-2. El **servidor hace el sorteo** (nadie, ni el organizador, ve quién le toca a quién) y devuelve un enlace `…/#s=CODIGO` para compartir.
-3. **Cada amigo** abre el enlace, ve a todos en la habitación, toca su avatar (o su nombre), confirma «¿Eres X?» y su amigo invisible viene y se lo cuenta. Después puede **cambiarse la foto** (📷).
+1. **Organizador**: pone evento/presupuesto/fecha, añade participantes (mín. 3), restricciones (parejas…) y «Crear sala para mis amigos». También se puede crear llamando a `POST /api/create`.
+2. El **servidor hace el sorteo** (nadie ve quién le toca a quién) y genera un **enlace personal por persona** (`#s=SALA&k=CLAVE`) y un enlace de organizador (`#s=SALA&a=ADMIN`) que muestra los enlaces para copiarlos o mandarlos por WhatsApp.
+3. **Cada amigo** abre SU enlace: ve a todos en la habitación, su avatar lleva una flecha dorada, puede ponerse **mote** y **foto** y pulsar «Ver a quién me toca» (o tocar su avatar): su amigo invisible viene caminando y se lo cuenta.
 4. «Pasar el móvil» sigue existiendo como modo local sin conexión.
 
 ## Privacidad
-- Un nombre se «reserva» con el primer dispositivo que lo abre (token guardado en ese navegador). Otro dispositivo recibe «ya lo ha abierto otra persona».
-- Si alguien abrió un nombre por error o cambia de móvil, el organizador (en el navegador donde creó la sala) pulsa su nombre en el panel «Organizador» para **liberarlo**.
-- Quien conozca el enlace puede abrir cualquier nombre aún sin reservar: pásalo solo a tus amigos. Cada uno debe abrir **su** nombre.
+- El enlace personal es la «contraseña» de cada uno: solo permite ver a quién le toca a esa persona y editar su perfil. No se comparte.
+- El enlace de organizador solo da acceso a la lista de enlaces; no revela el sorteo.
+- Mientras los demás ven en la habitación nombres, motes y fotos, y un ✓ en quien ya ha mirado su amigo.
 
 ## Estructura
 - `index.html`, `style.css`, `app.js` (interfaz, nieve WebGL, flujo), `room.js` (habitación y avatares en Canvas 2D con proyección caballera).
-- `netlify/functions/api.mjs`: API (crear, ver, abrir, foto, liberar). Los datos se guardan en Netlify Blobs.
+- `netlify/functions/api.mjs`: API (crear, ver, identificar, revelar, perfil, enlaces). Los datos se guardan en Netlify Blobs.
 
 ## Desarrollo local
 ```bash

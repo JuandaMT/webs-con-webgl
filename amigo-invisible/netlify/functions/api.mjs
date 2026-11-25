@@ -45,7 +45,7 @@ export default async (req) => {
   if (action === 'create' && req.method === 'POST') {
     const people = Array.isArray(body.people) ? body.people : [];
     if (people.length < 3 || people.length > 40) return json({ error: 'Hacen falta entre 3 y 40 participantes.' }, 400);
-    const clean = people.map(p => ({ n: str(p && p.n, 30), p: p && okPhoto(p.p || '') ? (p.p || '') : '', claim: null }));
+    const clean = people.map(p => ({ n: str(p && p.n, 30), p: p && okPhoto(p.p || '') ? (p.p || '') : '', nick: '', key: rid(16), opened: false }));
     if (clean.some(p => !p.n)) return json({ error: 'Nombre vacío.' }, 400);
     if (new Set(clean.map(p => p.n.toLowerCase())).size !== clean.length) return json({ error: 'Nombres repetidos.' }, 400);
     const pos = new Map(clean.map((p, i) => [p.n, i]));
@@ -60,40 +60,45 @@ export default async (req) => {
     const gid = rid(8), admin = rid(24);
     const ev = { name: str(body.ev && body.ev.name, 40), budget: str(body.ev && body.ev.budget, 20), date: str(body.ev && body.ev.date, 30) };
     await store.setJSON(gid, { ev, people: clean, giftOf, admin });
-    return json({ id: gid, admin });
+    return json({ id: gid, admin, keys: clean.map(p => p.key) });
   }
 
   if (!id || !/^[a-z0-9]{8}$/.test(id)) return json({ error: 'Sala no válida' }, 400);
   const g = await store.get(id, { type: 'json' });
   if (!g) return json({ error: 'Sala no encontrada' }, 410);
-  const i = Number.isInteger(body.i) ? body.i : -1;
-  const person = g.people[i];
+  const byKey = k => g.people.findIndex(p => same(p.key, str(k, 32)));
 
   if (action === 'game' && req.method === 'GET') {
-    return json({ ev: g.ev, people: g.people.map(p => ({ n: p.n, p: p.p, claimed: !!p.claim })) });
+    return json({ ev: g.ev, people: g.people.map(p => ({ n: p.n, p: p.p, nick: p.nick || '', opened: !!p.opened })) });
   }
 
-  if (action === 'claim' && req.method === 'POST') {
-    if (!person) return json({ error: 'Persona no válida' }, 400);
-    const token = str(body.token, 64);
-    if (token.length < 16) return json({ error: 'Token no válido' }, 400);
-    if (person.claim && !same(person.claim, token)) return json({ error: 'Ya lo ha abierto otra persona' }, 409);
-    if (!person.claim) { person.claim = token; await store.setJSON(id, g); }
-    return json({ gift: g.people[g.giftOf[i]].n });
+  if (action === 'me' && req.method === 'POST') {
+    const i = byKey(body.key);
+    return i < 0 ? json({ error: 'Enlace no válido' }, 401) : json({ i });
   }
 
-  if (action === 'photo' && req.method === 'POST') {
-    if (!person || !person.claim || !same(person.claim, str(body.token, 64))) return json({ error: 'No autorizado' }, 401);
-    if (typeof body.p !== 'string' || !okPhoto(body.p)) return json({ error: 'Foto no válida' }, 400);
-    person.p = body.p; await store.setJSON(id, g);
-    return json({ ok: true });
+  if (action === 'reveal' && req.method === 'POST') {
+    const i = byKey(body.key);
+    if (i < 0) return json({ error: 'Enlace no válido' }, 401);
+    if (!g.people[i].opened) { g.people[i].opened = true; await store.setJSON(id, g); }
+    return json({ gift: g.giftOf[i] });
   }
 
-  if (action === 'release' && req.method === 'POST') {
+  if (action === 'profile' && req.method === 'POST') {
+    const i = byKey(body.key);
+    if (i < 0) return json({ error: 'Enlace no válido' }, 401);
+    if (body.nick !== undefined) g.people[i].nick = str(body.nick, 20).replace(/[\u0000-\u001f<>]/g, '');
+    if (body.p !== undefined) {
+      if (typeof body.p !== 'string' || !okPhoto(body.p)) return json({ error: 'Foto no válida' }, 400);
+      g.people[i].p = body.p;
+    }
+    await store.setJSON(id, g);
+    return json({ ok: true, nick: g.people[i].nick });
+  }
+
+  if (action === 'links' && req.method === 'POST') {
     if (!same(g.admin, str(body.admin, 64))) return json({ error: 'No autorizado' }, 401);
-    if (!person) return json({ error: 'Persona no válida' }, 400);
-    person.claim = null; await store.setJSON(id, g);
-    return json({ ok: true });
+    return json({ keys: g.people.map(p => p.key) });
   }
 
   return json({ error: 'No encontrado' }, 400);

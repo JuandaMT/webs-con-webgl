@@ -179,7 +179,7 @@ function drawAvatar(a) {
   else {
     ctx.fillStyle = SKIN; ctx.fillRect(hx - r, hy - r, 2 * r, 2 * r);
     ctx.fillStyle = '#5a3b22'; ctx.font = `700 ${r * 1.1}px Georgia,serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(a.n.charAt(0).toUpperCase(), hx, hy + r * .05);
+    ctx.fillText(a.label.charAt(0).toUpperCase(), hx, hy + r * .05);
   }
   ctx.restore();
   ctx.beginPath(); ctx.arc(hx, hy, r, 0, 7);
@@ -194,13 +194,13 @@ function drawAvatar(a) {
   circle(hx + bw * .9, base - r * 1.15, r * .2, '#fff');
 
   // etiqueta
-  const label = (a.seen ? '✓ ' : '') + a.n;
+  const label = (a.seen ? '✓ ' : '') + a.label, isMe = a === me || a.mine;
   const fs = Math.max(11, .3 * u); ctx.font = `600 ${fs}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   const tw = ctx.measureText(label).width + fs * .8, ly = g.labelY - bob - fs * .6;
   rr(fx - tw / 2, ly - fs * .65, tw, fs * 1.3, fs * .65);
-  ctx.fillStyle = a === me ? '#f4c95d' : 'rgba(0,0,0,.55)'; ctx.fill();
-  ctx.fillStyle = a === me ? '#3b2a00' : '#fff'; ctx.fillText(label, fx, ly + 1);
-  if (a === me) { // flecha sobre «yo»
+  ctx.fillStyle = isMe ? '#f4c95d' : 'rgba(0,0,0,.55)'; ctx.fill();
+  ctx.fillStyle = isMe ? '#3b2a00' : '#fff'; ctx.fillText(label, fx, ly + 1);
+  if (isMe) { // flecha sobre «yo»
     const ay = ly - fs * .9 - Math.abs(Math.sin(a.t * 4)) * fs * .4;
     ctx.fillStyle = '#f4c95d'; ctx.beginPath(); ctx.moveTo(fx - fs * .4, ay - fs * .6); ctx.lineTo(fx + fs * .4, ay - fs * .6); ctx.lineTo(fx, ay); ctx.fill();
   }
@@ -324,7 +324,7 @@ function init(canvas) {
 function open(people, handlers, mode) {
   H_ = handlers || {};
   cast = people.map((p, i) => {
-    const a = { i, n: p.n, x: rnd(1, W - 1), z: rnd(.8, D - 1.2), t: rnd(0, 9), v: rnd(.9, 1.5), wait: rnd(0, 2), walking: false, wave: false, seen: false, img: null };
+    const a = { i, n: p.n, label: p.nick || p.n, mine: false, x: rnd(1, W - 1), z: rnd(.8, D - 1.2), t: rnd(0, 9), v: rnd(.9, 1.5), wait: rnd(0, 2), walking: false, wave: false, seen: false, img: null };
     newTarget(a);
     if (p.p) { a.img = new Image(); a.img.src = p.p; }
     return a;
@@ -339,7 +339,10 @@ function open(people, handlers, mode) {
   resize();
   if (!raf) { last = performance.now(); raf = requestAnimationFrame(loop); }
 }
+function busy() { return phase === 'approach' || phase === 'talk'; }
 function close() { cancelAnimationFrame(raf); raf = 0; cast = []; me = gift = null; phase = 'idle'; }
+function setMine(i) { cast.forEach(a => a.mine = a.i === i); }
+function setProfile(i, d) { const a = cast[i]; if (!a) return; if (d.nick !== undefined) a.label = d.nick || a.n; if (d.p !== undefined) setPhoto(i, d.p); }
 function setPhoto(i, p) { const a = cast[i]; if (!a) return; if (p) { a.img = new Image(); a.img.src = p; } else a.img = null; }
 function setSeen(i, v = true) { if (cast[i]) cast[i].seen = v; }
 function encounter(meIdx, giftIdx, say, done) {
@@ -353,5 +356,5 @@ function endEncounter(back) {
   me = gift = null; phase = back === 'pick' ? 'pick' : 'free';
 }
 
-return { init, open, close, setSeen, setPhoto, encounter, endEncounter, shrink, squareJpeg };
+return { init, open, close, busy, setSeen, setPhoto, setMine, setProfile, encounter, endEncounter, shrink, squareJpeg };
 })();
