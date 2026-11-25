@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1d16">
+<meta name="robots" content="noindex">
+<title>Amigo invisible</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect x='8' y='24' width='48' height='32' rx='4' fill='%23c8102e'/><rect x='28' y='24' width='8' height='32' fill='%23f4c95d'/><rect x='6' y='16' width='52' height='10' rx='3' fill='%23e5384f'/></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="snow" aria-hidden="true"></canvas>
+
+<main class="wrap" id="wrap">
+  <header class="top">
+    <p class="eyebrow">✦ Amigo invisible ✦</p>
+    <h1 id="title">¿A quién te <em>toca?</em></h1>
+  </header>
+
+  <!-- 1. PREPARAR -->
+  <section id="setup" class="card" hidden>
+    <div class="grid2">
+      <label>Nombre del evento
+        <input id="evName" type="text" maxlength="40" placeholder="Navidad 2026" autocomplete="off">
+      </label>
+      <label>Presupuesto
+        <input id="evBudget" type="text" maxlength="20" placeholder="20 €" autocomplete="off">
+      </label>
+    </div>
+    <label>Fecha del intercambio <span class="opt">(opcional)</span>
+      <input id="evDate" type="text" maxlength="30" placeholder="24 de diciembre" autocomplete="off">
+    </label>
+
+    <h2>Participantes <span id="count" class="badge">0</span></h2>
+    <form id="addForm" class="row">
+      <input id="newName" type="text" maxlength="30" placeholder="Añade un nombre y pulsa Enter" autocomplete="off" aria-label="Nombre del participante">
+      <button class="btn" type="submit">Añadir</button>
+    </form>
+    <ul id="people" class="chips"></ul>
+    <p class="note">Toca el círculo de cada persona para ponerle su foto 📷</p>
+    <input id="photoIn" type="file" accept="image/*" hidden>
+
+    <details id="exBox">
+      <summary>Restricciones <span class="opt">(parejas, hermanos… que no se tocan entre sí)</span></summary>
+      <form id="exForm" class="row ex">
+        <select id="exA" aria-label="Primera persona"></select>
+        <span>no puede regalar a</span>
+        <select id="exB" aria-label="Segunda persona"></select>
+        <label class="inline"><input id="exBoth" type="checkbox" checked> ambos sentidos</label>
+        <button class="btn ghost" type="submit">Añadir</button>
+      </form>
+      <ul id="exList" class="chips"></ul>
+    </details>
+
+    <p id="setupMsg" class="msg" role="alert"></p>
+    <div class="row end">
+      <button id="clearBtn" class="btn ghost" type="button">Vaciar todo</button>
+      <button id="drawBtn" class="btn big" type="button">🎁 Hacer el sorteo</button>
+    </div>
+  </section>
+
+  <!-- 2. ELEGIR CÓMO REPARTIR -->
+  <section id="done" class="card" hidden>
+    <h2>¡Sorteo hecho!</h2>
+    <p class="muted">Nadie ha visto nada todavía. Elige cómo repartir los resultados:</p>
+    <div class="grid2">
+      <button id="modePass" class="mode" type="button">
+        <strong>📱 Pasar el móvil</strong>
+        <span>Todos en la misma habitación: cada uno elige quién es y su amigo invisible viene a contárselo.</span>
+      </button>
+      <button id="modeLinks" class="mode" type="button">
+        <strong>🔗 Enviar enlaces</strong>
+        <span>Un enlace privado por persona (WhatsApp, etc.) para verlo cada uno en su móvil.</span>
+      </button>
+    </div>
+    <div class="row end">
+      <button id="redoBtn" class="btn ghost" type="button">← Volver y repetir sorteo</button>
+    </div>
+  </section>
+
+  <!-- 3b. ENLACES -->
+  <section id="links" class="card" hidden>
+    <h2>Enlaces privados</h2>
+    <p class="muted">Cada enlace solo enseña a quién le toca a esa persona. <strong>No abras los enlaces de los demás</strong> si quieres que sea sorpresa.</p>
+    <ul id="linkList" class="links"></ul>
+    <p class="note">Para que los enlaces funcionen en otros móviles, esta web tiene que estar publicada online (ver LEEME).</p>
+    <div class="row end">
+      <button class="btn ghost" data-back type="button">← Atrás</button>
+    </div>
+  </section>
+
+  <!-- 4. HABITACIÓN -->
+  <section id="room" class="card room" hidden>
+    <p id="roomHint" class="hint"></p>
+    <div class="stage"><canvas id="roomCv" aria-label="Habitación con los avatares de todos los participantes"></canvas></div>
+    <ul id="whoList" class="chips big"></ul>
+    <div id="whoConfirm" class="row confirm" hidden>
+      <span id="whoQ"></span>
+      <button id="whoYes" class="btn" type="button">Sí, soy yo</button>
+      <button id="whoNo" class="btn ghost" type="button">No</button>
+    </div>
+    <div id="roomResult" class="result center" role="status" hidden>
+      <p class="muted">Le haces un regalo a</p>
+      <div id="roomFace" class="face"></div>
+      <p id="roomName" class="big-name"></p>
+      <p id="roomMeta" class="muted"></p>
+      <p class="note">Shhh… es un secreto 🤫</p>
+    </div>
+    <div class="row end">
+      <button id="roomBack" class="btn ghost" type="button">← Salir</button>
+      <button id="roomDone" class="btn" type="button" hidden>Entendido, ocultar</button>
+    </div>
+  </section>
+</main>
+
+<script src="room.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

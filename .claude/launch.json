@@ -24,6 +24,26 @@
         "inmobiliaria"
       ],
       "port": 5174
+    },
+    {
+      "name": "crm",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "crm/server.js"
+      ],
+      "port": 5175
+    },
+    {
+      "name": "amigo-invisible",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5176",
+        "--directory",
+        "amigo-invisible"
+      ],
+      "port": 5176
     }
   ]
 }
