@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex">
 <title>Amigo invisible</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect x='8' y='24' width='48' height='32' rx='4' fill='%23c8102e'/><rect x='28' y='24' width='8' height='32' fill='%23f4c95d'/><rect x='6' y='16' width='52' height='10' rx='3' fill='%23e5384f'/></svg>">
-<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 <canvas id="snow" aria-hidden="true"></canvas>
@@ -105,7 +105,8 @@
       <div class="row end"><button id="roomPhoto" class="btn ghost" type="button">📷 Cambiar mi foto</button></div>
     </div>
     <div id="adminBox" class="admin" hidden>
-      <h3>Organizador: enlaces personales</h3>
+      <h3>Organizador</h3>
+      <p id="adminSummary" class="summary"></p>
       <p class="muted">Manda a cada persona <b>su</b> enlace. Solo sirve para esa persona.</p>
       <ul id="linkList" class="links"></ul>
     </div>
@@ -117,7 +118,19 @@
   </section>
 </main>
 
-<script src="room.js?v=7"></script>
-<script src="app.js?v=7"></script>
+<div id="cropModal" class="modal" hidden role="dialog" aria-modal="true" aria-label="Encuadrar foto">
+  <div class="modal-card">
+    <p class="muted">Arrastra para mover y usa el zoom para encuadrar tu cara.</p>
+    <div class="crop-box"><canvas id="cropCv" width="280" height="280"></canvas></div>
+    <label class="zoom">Zoom <input id="cropZoom" type="range" min="1" max="4" step="0.01" value="1"></label>
+    <div class="row end">
+      <button id="cropCancel" class="btn ghost" type="button">Cancelar</button>
+      <button id="cropOk" class="btn" type="button">Usar esta foto</button>
+    </div>
+  </div>
+</div>
+
+<script src="room.js?v=8"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

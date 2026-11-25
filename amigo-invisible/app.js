@@ -74,12 +74,68 @@ function fillFace(el, photo, name) {
 $('photoIn').onchange = async e => {
   const f = e.target.files[0]; e.target.value = '';
   if (!f || !photoFor) return;
-  try {
-    const bmp = await createImageBitmap(f);
-    state.photos[photoFor] = Room.squareJpeg(bmp, bmp.width, bmp.height, 96, 0.7);
-    save(); renderSetup();
-  } catch (err) { $('setupMsg').textContent = 'No he podido leer esa imagen.'; }
+  const url = await cropPhoto(f);
+  if (url) { state.photos[photoFor] = url; save(); renderSetup(); }
+  else if (url === undefined) $('setupMsg').textContent = 'No he podido leer esa imagen.';
 };
+
+/* Recortador: arrastrar para mover, deslizador / rueda / pellizco para el zoom.
+   Resuelve con un data URL JPEG de 96x96, null si se cancela o undefined si no se puede leer. */
+function cropPhoto(file) {
+  return new Promise(async resolve => {
+    let bmp;
+    try { bmp = await createImageBitmap(file); } catch (e) { resolve(undefined); return; }
+    const S = 280, modal = $('cropModal'), cv = $('cropCv'), c = cv.getContext('2d'), zoom = $('cropZoom');
+    const s0 = Math.max(S / bmp.width, S / bmp.height);
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    let z = 1, cx = S / 2, cy = S / 2, pinch = 0;
+    const ptrs = new Map();
+    const fit = () => {
+      const w = bmp.width * s0 * z / 2, h = bmp.height * s0 * z / 2;
+      cx = clamp(cx, S - w, w); cy = clamp(cy, S - h, h);
+    };
+    const draw = () => {
+      const sc = s0 * z;
+      c.fillStyle = '#fff'; c.fillRect(0, 0, S, S);
+      c.drawImage(bmp, cx - bmp.width * sc / 2, cy - bmp.height * sc / 2, bmp.width * sc, bmp.height * sc);
+      c.fillStyle = 'rgba(0,0,0,.6)'; c.beginPath(); c.rect(0, 0, S, S); c.arc(S / 2, S / 2, S / 2, 0, Math.PI * 2, true); c.fill('evenodd');
+      c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = 2; c.beginPath(); c.arc(S / 2, S / 2, S / 2 - 1, 0, Math.PI * 2); c.stroke();
+    };
+    const setZ = nz => {
+      nz = clamp(nz, 1, 4); const f = nz / z; z = nz;
+      cx = S / 2 + (cx - S / 2) * f; cy = S / 2 + (cy - S / 2) * f;
+      fit(); zoom.value = z; draw();
+    };
+    const dist = () => { const p = [...ptrs.values()]; return Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]); };
+    cv.onpointerdown = e => { cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); pinch = ptrs.size === 2 ? dist() : 0; };
+    cv.onpointermove = e => {
+      const prev = ptrs.get(e.pointerId); if (!prev) return;
+      const k = cv.getBoundingClientRect().width / S;
+      if (ptrs.size === 1) { cx += (e.clientX - prev[0]) / k; cy += (e.clientY - prev[1]) / k; fit(); draw(); }
+      ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+      if (ptrs.size === 2) { const d = dist(); if (pinch) setZ(z * d / pinch); pinch = d; }
+    };
+    cv.onpointerup = cv.onpointercancel = e => { ptrs.delete(e.pointerId); pinch = 0; };
+    cv.onwheel = e => { e.preventDefault(); setZ(z * (e.deltaY < 0 ? 1.08 : 1 / 1.08)); };
+    zoom.oninput = () => setZ(+zoom.value);
+    const onKey = e => { if (e.key === 'Escape') done(null); };
+    const done = url => {
+      modal.hidden = true; document.removeEventListener('keydown', onKey);
+      cv.onpointerdown = cv.onpointermove = cv.onpointerup = cv.onpointercancel = cv.onwheel = zoom.oninput = null;
+      bmp.close && bmp.close(); resolve(url);
+    };
+    $('cropOk').onclick = () => {
+      const out = document.createElement('canvas'); out.width = out.height = 96;
+      const o = out.getContext('2d'), f = 96 / S, sc = s0 * z * f;
+      o.fillStyle = '#fff'; o.fillRect(0, 0, 96, 96);
+      o.drawImage(bmp, (cx - bmp.width * s0 * z / 2) * f, (cy - bmp.height * s0 * z / 2) * f, bmp.width * sc, bmp.height * sc);
+      done(Room.canvasJpeg(out, 0.78));
+    };
+    $('cropCancel').onclick = () => done(null);
+    document.addEventListener('keydown', onKey);
+    zoom.value = 1; modal.hidden = false; draw(); $('cropOk').focus();
+  });
+}
 
 function readEvent() {
   state.ev = { name: $('evName').value.trim(), budget: $('evBudget').value.trim(), date: $('evDate').value.trim() };
@@ -220,7 +276,7 @@ async function reveal() {
     const r = await api('reveal/' + rc.id, { key: rc.key });
     if (!r.ok) throw new Error();
     const d = await r.json();
-    rc.giftOf[rc.me] = d.gift;
+    rc.giftOf[rc.me] = d.gift; rc.cast[rc.me].opened = true; updateAdmin();
     meet(rc.me);
   } catch (e) { $('revealBtn').hidden = false; setHint('No he podido conectar con el servidor. Inténtalo otra vez.'); }
 }
@@ -279,8 +335,10 @@ async function refresh() {
         if (c.p !== p.p) { c.p = p.p; Room.setPhoto(i, p.p); }
         if ((c.nick || '') !== p.nick) { c.nick = p.nick; Room.setProfile(i, { nick: p.nick }); }
       }
+      c.opened = p.opened;
       if (p.opened && !seen.has(p.n)) { seen.add(p.n); Room.setSeen(i); }
     });
+    updateAdmin();
   } catch (e) {}
 }
 
@@ -289,12 +347,13 @@ async function renderAdmin() {
     const r = await api('links/' + rc.id, { admin: rc.admin });
     if (!r.ok) return;
     const { keys } = await r.json();
-    const ul = $('linkList'); ul.innerHTML = '';
+    const ul = $('linkList'); ul.innerHTML = ''; rc.adminRows = [];
     const base = location.href.split('#')[0];
     rc.cast.forEach((p, i) => {
       const url = `${base}#s=${rc.id}&k=${keys[i]}`;
       const li = document.createElement('li');
       const name = document.createElement('b'); name.textContent = p.n;
+      const st = document.createElement('span'); st.className = 'st';
       const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'btn ghost'; copy.textContent = 'Copiar';
       copy.onclick = async () => {
         try { await navigator.clipboard.writeText(url); copy.textContent = '¡Copiado!'; } catch (e) { prompt('Copia el enlace:', url); }
@@ -302,10 +361,21 @@ async function renderAdmin() {
       };
       const wa = document.createElement('a'); wa.className = 'btn'; wa.target = '_blank'; wa.rel = 'noopener'; wa.textContent = 'WhatsApp';
       wa.href = 'https://wa.me/?text=' + encodeURIComponent(`🎁 ${rc.ev.name || 'Amigo invisible'}: ${p.n}, este es tu enlace personal (no lo compartas). Entra, ponte mote y foto, y descubre a quién te toca: ${url}`);
-      li.append(name, copy, wa); ul.append(li);
+      li.append(name, st, copy, wa); ul.append(li); rc.adminRows.push(st);
     });
     $('adminBox').hidden = false;
+    updateAdmin();
   } catch (e) {}
+}
+function updateAdmin() {
+  if (!rc || !rc.admin || !rc.adminRows) return;
+  let n = 0;
+  rc.cast.forEach((p, i) => {
+    const ok = !!p.opened; if (ok) n++;
+    const st = rc.adminRows[i]; if (!st) return;
+    st.textContent = ok ? '✓ Ya ha mirado' : 'Pendiente'; st.className = 'st' + (ok ? ' ok' : '');
+  });
+  $('adminSummary').textContent = n === rc.cast.length ? `¡Todos han mirado! (${n} de ${n}) 🎉` : `${n} de ${rc.cast.length} ya han mirado a quién les toca`;
 }
 
 $('nickSave').onclick = async () => {
@@ -325,9 +395,10 @@ $('roomPhoto').onclick = () => $('roomPhotoIn').click();
 $('roomPhotoIn').onchange = async e => {
   const f = e.target.files[0]; e.target.value = '';
   if (!f || !rc || rc.me === null) return;
+  const p = await cropPhoto(f);
+  if (p === null) return;
+  if (p === undefined) { setHint('No he podido leer esa imagen.'); return; }
   try {
-    const bmp = await createImageBitmap(f);
-    const p = Room.squareJpeg(bmp, bmp.width, bmp.height, 96, 0.7);
     const r = await api('profile/' + rc.id, { key: rc.key, p });
     if (!r.ok) throw new Error();
     rc.cast[rc.me].p = p; Room.setPhoto(rc.me, p);

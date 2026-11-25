@@ -44,6 +44,7 @@ function squareJpeg(source, sw, sh, size, q) {
   c.getContext('2d').drawImage(source, (sw - m) / 2, (sh - m) / 2, m, m, 0, 0, size, size);
   return stripIcc(c.toDataURL('image/jpeg', q));
 }
+function canvasJpeg(c, q) { return stripIcc(c.toDataURL('image/jpeg', q)); }
 function shrink(url, size, q) {
   return new Promise(res => {
     if (!url) return res('');
@@ -470,5 +471,5 @@ function skip() {
   setPhase('approach');
 }
 
-return { init, open, close, busy, skip, setSeen, setPhoto, setMine, setProfile, encounter, endEncounter, shrink, squareJpeg };
+return { init, open, close, busy, skip, setSeen, setPhoto, setMine, setProfile, encounter, endEncounter, shrink, squareJpeg, canvasJpeg };
 })();
