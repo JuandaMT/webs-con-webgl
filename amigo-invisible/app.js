@@ -162,11 +162,11 @@ function openRoom(o) {
   $('wrap').classList.add('wide');
   if (o.ev.name) $('title').textContent = o.ev.name;
   show('room');
-  ['roomResult', 'whoConfirm', 'revealBtn', 'profileBox', 'adminBox', 'roomDone'].forEach(id => $(id).hidden = true);
+  ['roomResult', 'whoConfirm', 'revealBtn', 'profileBox', 'adminBox', 'roomDone', 'roomSkip'].forEach(id => $(id).hidden = true);
   const online = o.mode === 'online';
   $('roomBack').hidden = online;
   if (online) rc.cast.forEach(c => { if (c.opened) seen.add(c.n); });
-  Room.open(o.cast, { onPick: askWho }, 'pick');
+  Room.open(o.cast, { onPick: askWho, onPhase: ph => { $('roomSkip').hidden = ph !== 'rampage'; } }, 'pick');
   rc.cast.forEach((c, i) => { if (seen.has(c.n)) Room.setSeen(i); });
   if (online && rc.me !== null) Room.setMine(rc.me);
   if (online) { $('whoList').hidden = true; $('whoList').innerHTML = ''; } else renderWho();
@@ -227,8 +227,8 @@ async function reveal() {
 
 function meet(me) {
   const g = rc.giftOf[me], you = rc.cast[me], other = rc.cast[g];
-  setHint(`${lab(other)} viene a contártelo…`);
-  Room.encounter(me, g, `¡Hola ${lab(you)}! Soy ${lab(other)}. ¡Te ha tocado regalarme a mí! 🎁`, () => {
+  setHint(`${lab(other)} saca un bate… 🏏 ¡Cuidado!`);
+  Room.encounter(me, g, `¡Hola ${lab(you)}! Ya me he encargado de los demás 😈 Soy ${lab(other)}: ¡te ha tocado regalarme a mí! 🎁`, () => {
     fillFace($('roomFace'), other.p, lab(other));
     $('roomName').textContent = lab(other);
     $('roomMeta').textContent = [other.nick && `Es ${other.n}`, rc.ev.budget && `Presupuesto: ${rc.ev.budget}`, rc.ev.date && `Fecha: ${rc.ev.date}`].filter(Boolean).join(' · ');
@@ -242,6 +242,7 @@ function meet(me) {
     };
   });
 }
+$('roomSkip').onclick = () => Room.skip();
 $('roomDone').onclick = () => rc && rc.doneFn && rc.doneFn();
 $('roomBack').onclick = leaveRoom;
 function leaveRoom() {

@@ -144,13 +144,26 @@ function avatarGeom(a) {
   return { fx, fy, u, hipY, top, r, hy, hatTop: hy - r * .62 - r * 1.3, labelY: hy - r * .62 - r * 1.3 - .12 * u };
 }
 
+function starPath(x, y, ro, ri, rot = 0) {
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) { const rr_ = i % 2 ? ri : ro, an = rot - Math.PI / 2 + i * Math.PI / 5; ctx.lineTo(x + Math.cos(an) * rr_, y + Math.sin(an) * rr_); }
+  ctx.closePath();
+}
+
 function drawAvatar(a) {
   const g = avatarGeom(a), u = g.u;
   const sw = a.walking ? Math.sin(a.t * 9) : 0;
   const bob = a.walking ? Math.abs(Math.cos(a.t * 9)) * .07 * u : 0;
   const fx = g.fx, fy = g.fy, hipY = g.hipY - bob, top = g.top - bob, hx = fx, hy = g.hy - bob, r = g.r;
+  const down = !!a.down, lie = a.lie || 0, lift = (a.h || 0) * u;
 
-  ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(fx, fy, .5 * u, .16 * u, 0, 0, 7); ctx.fill();
+  // sombra (se encoge al volar y se alarga al tumbarse)
+  const sk = 1 - Math.min(.6, (a.h || 0) * .35);
+  ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(fx, fy, .5 * u * sk * (1 + lie * .9), .16 * u * sk, 0, 0, 7); ctx.fill();
+
+  const py = fy - .8 * u;
+  ctx.save();
+  if (down) { ctx.translate(fx, py - lift + .55 * u * lie); ctx.rotate(a.rot || 0); ctx.translate(-fx, -py); }
 
   // piernas
   ctx.lineCap = 'round';
@@ -164,13 +177,27 @@ function drawAvatar(a) {
   const shirt = hashCol(a.n);
   rr(fx - .36 * u, top, .72 * u, .8 * u, .2 * u); ctx.fillStyle = shirt; ctx.fill();
   ctx.fillStyle = 'rgba(255,255,255,.22)'; rr(fx - .36 * u, top + .42 * u, .72 * u, .1 * u, .05 * u); ctx.fill();
-  // brazos
+  // brazos (y bate)
   for (const side of [-1, 1]) {
     const sx = fx + side * .43 * u, sy = top + .15 * u;
-    let ang = -sw * side * .6 + side * .12;
-    if (a.wave && side === 1) ang = Math.PI * .8 + Math.sin(a.t * 12) * .3;
-    const ex = sx + Math.sin(ang) * .55 * u, ey = sy + Math.cos(ang) * .55 * u;
+    let ang = -sw * side * .6 + side * .12, bat = false;
+    if (down) ang = side * (1.1 + (a.air ? Math.sin(a.t * 20) * .3 : 0));
+    else if (a.bat && side === (a.batSide || 1)) {
+      const p = a.swingP === undefined ? -1 : a.swingP;
+      let b;
+      if (p < 0) b = Math.PI * .82;
+      else if (p < .35) b = Math.PI * (.9 + .1 * (p / .35));
+      else { const q = (p - .35) / .65; b = Math.PI * (1 - .7 * q * q * (3 - 2 * q)); }
+      ang = side > 0 ? b : -b; bat = true;
+    } else if (a.wave && side === 1) ang = Math.PI * .8 + Math.sin(a.t * 12) * .3;
+    const L = .55 * u, ex = sx + Math.sin(ang) * L, ey = sy + Math.cos(ang) * L;
     ctx.strokeStyle = shirt; ctx.lineWidth = .17 * u; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+    if (bat) {
+      const dx = (ex - sx) / L, dy = (ey - sy) / L;
+      ctx.strokeStyle = '#a8743a'; ctx.lineWidth = .09 * u; ctx.beginPath(); ctx.moveTo(ex - dx * .12 * u, ey - dy * .12 * u); ctx.lineTo(ex + dx * .4 * u, ey + dy * .4 * u); ctx.stroke();
+      ctx.strokeStyle = '#d19a58'; ctx.lineWidth = .19 * u; ctx.beginPath(); ctx.moveTo(ex + dx * .4 * u, ey + dy * .4 * u); ctx.lineTo(ex + dx * 1.15 * u, ey + dy * 1.15 * u); ctx.stroke();
+      ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.lineWidth = .04 * u; ctx.beginPath(); ctx.moveTo(ex + dx * .5 * u, ey + dy * .5 * u); ctx.lineTo(ex + dx * 1.1 * u, ey + dy * 1.1 * u); ctx.stroke();
+    }
     circle(ex, ey, .1 * u, SKIN);
   }
   // cabeza con la cara
@@ -185,6 +212,8 @@ function drawAvatar(a) {
   ctx.beginPath(); ctx.arc(hx, hy, r, 0, 7);
   const hot = hover === a && phase === 'pick';
   ctx.strokeStyle = hot ? '#f4c95d' : '#fff'; ctx.lineWidth = hot ? .1 * u : .05 * u; ctx.stroke();
+  // cara de enfado al gift con bate / de mareo al noqueado
+  if (a.bat) { ctx.strokeStyle = '#7a1020'; ctx.lineWidth = .06 * u; ctx.beginPath(); ctx.moveTo(hx - r * .55, hy - r * .22); ctx.lineTo(hx - r * .1, hy - r * .02); ctx.moveTo(hx + r * .55, hy - r * .22); ctx.lineTo(hx + r * .1, hy - r * .02); ctx.stroke(); }
   // gorro
   const base = hy - r * .62, bw = r * 1.02;
   ctx.fillStyle = '#d62839'; ctx.beginPath(); ctx.moveTo(hx - bw, base);
@@ -192,11 +221,23 @@ function drawAvatar(a) {
   ctx.quadraticCurveTo(hx + bw * .55, base - r * .4, hx + bw, base); ctx.closePath(); ctx.fill();
   rr(hx - bw * 1.08, base - r * .12, bw * 2.16, r * .3, r * .15); ctx.fillStyle = '#fff'; ctx.fill();
   circle(hx + bw * .9, base - r * 1.15, r * .2, '#fff');
+  ctx.restore();
+
+  // estrellitas de mareo
+  const bodyY = down ? py - lift + .55 * u * lie : 0;
+  if (down && lie > .8) {
+    const cx = fx + .96 * u * Math.sin(a.rot || 0), cy = bodyY - .96 * u * Math.cos(a.rot || 0) - .5 * u;
+    for (let k = 0; k < 3; k++) {
+      const an = a.t * 4 + k * 2.09;
+      ctx.fillStyle = '#ffd23f'; starPath(cx + Math.cos(an) * .5 * u, cy + Math.sin(an) * .14 * u, .14 * u, .06 * u, an); ctx.fill();
+    }
+  }
 
   // etiqueta
   const label = (a.seen ? '✓ ' : '') + a.label, isMe = a === me || a.mine;
   const fs = Math.max(11, .3 * u); ctx.font = `600 ${fs}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const tw = ctx.measureText(label).width + fs * .8, ly = g.labelY - bob - fs * .6;
+  const tw = ctx.measureText(label).width + fs * .8;
+  const ly = (down ? fy - 1.55 * u : g.labelY - bob) - (down ? 0 : fs * .6);
   rr(fx - tw / 2, ly - fs * .65, tw, fs * 1.3, fs * .65);
   ctx.fillStyle = isMe ? '#f4c95d' : 'rgba(0,0,0,.55)'; ctx.fill();
   ctx.fillStyle = isMe ? '#3b2a00' : '#fff'; ctx.fillText(label, fx, ly + 1);
@@ -235,19 +276,63 @@ function moveToward(a, tx, tz, step) {
   a.x += dx / d * step; a.z += dz / d * step; return false;
 }
 
+let rv = null, rst = 'go', rt = 0, hitDone = false, effects = [];
+const POW = ['¡POW!', '¡PAF!', '¡BONK!', '¡ZAS!', '¡PLAF!'];
+function setPhase(p) { phase = p; H_.onPhase && H_.onPhase(p); }
+
+function smash(v, g) {
+  const dir = v.x >= g.x ? 1 : -1;
+  Object.assign(v, { down: true, air: true, airT: 0, h: .01, vh: 5.2, vx: dir * 5, dirH: dir, bounce: 0, lie: 0, rot: 0 });
+  effects.push({ x: v.x, z: v.z, t: 0, txt: POW[Math.floor(Math.random() * POW.length)] });
+}
+function forceDown(v, g) {
+  const dir = g && v.x < g.x ? -1 : 1;
+  Object.assign(v, { down: true, air: false, h: 0, vx: 0, dirH: dir, rot: dir * Math.PI / 2, lie: 1, walking: false });
+}
+function physics(a, dt) {
+  if (a.air) {
+    a.airT += dt; a.vh -= 16 * dt; a.h += a.vh * dt;
+    a.x = clamp(a.x + a.vx * dt, .3, W - .3);
+    a.rot = a.dirH * Math.PI / 2 * Math.min(1, a.airT / .45); a.lie = Math.min(1, a.airT / .45);
+    if (a.h <= 0) {
+      a.h = 0;
+      if (a.bounce < 1) { a.bounce++; a.vh = 1.8; a.vx *= .4; } else { a.air = false; a.vx = 0; a.lie = 1; a.rot = a.dirH * Math.PI / 2; }
+    }
+  }
+}
+
+function rampage(a, dt) {
+  if (!rv) {
+    const rest = cast.filter(v => v !== me && v !== gift && !v.down);
+    if (!rest.length) { a.bat = false; a.swingP = -1; a.walking = false; setPhase('approach'); return; }
+    rest.sort((p, q) => Math.hypot(p.x - a.x, p.z - a.z) - Math.hypot(q.x - a.x, q.z - a.z));
+    rv = rest[0]; rst = 'go';
+  }
+  if (rst === 'go') {
+    const side = a.x <= rv.x ? -1 : 1;
+    a.walking = true; a.wave = false;
+    if (moveToward(a, clamp(rv.x + side * 1.0, .4, W - .4), rv.z, 4.4 * dt)) { a.walking = false; rst = 'swing'; rt = 0; hitDone = false; a.batSide = rv.x >= a.x ? 1 : -1; a.swingP = 0; }
+  } else {
+    rt += dt; a.swingP = Math.min(1, rt / .5);
+    if (!hitDone && a.swingP >= .6) { smash(rv, a); hitDone = true; }
+    if (rt >= .75) { rv = null; a.swingP = -1; }
+  }
+}
+
 function update(dt) {
+  for (const e of effects) e.t += dt;
+  effects = effects.filter(e => e.t < .9);
   for (const a of cast) {
     a.t += dt;
+    if (a.down) { physics(a, dt); a.walking = false; continue; }
     if (me && a === me) { a.walking = false; continue; }
+    if (a === gift && phase === 'rampage') { rampage(a, dt); continue; }
     if (a === gift && phase === 'approach') {
       a.walking = true; a.wave = false;
-      if (moveToward(a, a.gx, a.gz, 2.3 * dt)) { phase = 'talk'; talkT = 0; a.walking = false; a.wave = true; }
+      if (moveToward(a, a.gx, a.gz, 2.6 * dt)) { setPhase('talk'); talkT = 0; a.walking = false; a.wave = true; }
     } else if (a === gift && phase === 'talk') { a.walking = false; a.wave = true; }
+    else if (phase === 'rampage') { a.walking = false; }       // los demás se quedan petrificados
     else {
-      if (me && Math.hypot(a.x - me.x, a.z - me.z) < 2.6 && Math.hypot(a.tx - me.x, a.tz - me.z) < 3.2) {
-        for (let k = 0; k < 12 && Math.hypot(a.tx - me.x, a.tz - me.z) < 3.2; k++) newTarget(a);
-        a.wait = 0;
-      }
       a.wave = false;
       if (a.wait > 0) { a.wait -= dt; a.walking = false; }
       else { a.walking = true; if (moveToward(a, a.tx, a.tz, a.v * dt)) { a.wait = rnd(.6, 3); newTarget(a); } }
@@ -258,7 +343,11 @@ function update(dt) {
     if (!talkDone && talkT * 28 >= text.length) { talkDone = true; onTalkDone && onTalkDone(); }
   }
   // cámara
-  if (me && gift) {
+  if (phase === 'rampage' && gift) {
+    const A2 = avatarGeom(gift);
+    cam.tz = Math.min(1.5, cssW / (11 * U));
+    cam.tcx = A2.fx; cam.tcy = A2.fy - 1.8 * U;
+  } else if (me && gift) {
     const A1 = avatarGeom(me), A2 = avatarGeom(gift);
     cam.tz = Math.min(1.7, cssW / (9 * U));
     cam.tcx = (A1.fx + A2.fx) / 2; cam.tcy = Math.min(A1.fy, A2.fy) - 2.4 * U;
@@ -269,12 +358,25 @@ function update(dt) {
   cam.cy += (clamp(cam.tcy, hh, cssH - hh) - cam.cy) * .08;
 }
 
+function drawEffects() {
+  for (const e of effects) {
+    const [x, y] = P(e.x, 0, e.z), p = e.t / .9, sc = p < .2 ? p / .2 : 1 + p * .3;
+    const cx = x, cy = y - 1.7 * U - p * .4 * U, R = .75 * U * sc;
+    ctx.save(); ctx.globalAlpha = Math.min(1, (1 - p) * 2.2);
+    ctx.fillStyle = '#ffd23f'; ctx.strokeStyle = '#e5384f'; ctx.lineWidth = Math.max(2, .07 * U);
+    starPath(cx, cy, R, R * .55, p * .6); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#b3122b'; ctx.font = `800 ${Math.max(12, .34 * U * sc)}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(e.txt, cx, cy + 1); ctx.restore();
+  }
+}
+
 function draw() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, cssW, cssH);
   ctx.translate(cssW / 2, cssH / 2); ctx.scale(cam.z, cam.z); ctx.translate(-cam.cx, -cam.cy);
   drawRoom();
   const list = [...cast, ...items].sort((a, b) => b.z - a.z);
   for (const o of list) o.draw ? o.draw() : drawAvatar(o);
+  drawEffects();
   if (phase === 'talk' && gift) drawBubble(gift);
 }
 
@@ -339,7 +441,7 @@ function open(people, handlers, mode) {
   resize();
   if (!raf) { last = performance.now(); raf = requestAnimationFrame(loop); }
 }
-function busy() { return phase === 'approach' || phase === 'talk'; }
+function busy() { return phase === 'rampage' || phase === 'approach' || phase === 'talk'; }
 function close() { cancelAnimationFrame(raf); raf = 0; cast = []; me = gift = null; phase = 'idle'; }
 function setMine(i) { cast.forEach(a => a.mine = a.i === i); }
 function setProfile(i, d) { const a = cast[i]; if (!a) return; if (d.nick !== undefined) a.label = d.nick || a.n; if (d.p !== undefined) setPhoto(i, d.p); }
@@ -349,12 +451,24 @@ function encounter(meIdx, giftIdx, say, done) {
   me = cast[meIdx]; gift = cast[giftIdx]; text = say; talkDone = false; onTalkDone = done; hover = null;
   gift.gx = clamp(me.x + (me.x < W - 2 ? 1.3 : -1.3), .5, W - .5);
   gift.gz = clamp(me.z - .9, .3, D - .8);
-  phase = 'approach';
+  gift.bat = true; gift.swingP = -1; gift.wave = false; rv = null; effects = [];
+  setPhase('rampage');
 }
 function endEncounter(back) {
+  for (const a of cast) {
+    if (a.down) { Object.assign(a, { down: false, air: false, h: 0, rot: 0, lie: 0, vx: 0 }); newTarget(a); a.wait = rnd(0, 2.5); }
+    a.bat = false; a.swingP = -1;
+  }
   if (gift) { gift.wave = false; newTarget(gift); gift.wait = 0; }
-  me = gift = null; phase = back === 'pick' ? 'pick' : 'free';
+  me = gift = null; rv = null; effects = [];
+  setPhase(back === 'pick' ? 'pick' : 'free');
+}
+function skip() {
+  if (phase !== 'rampage' || !gift) return;
+  for (const v of cast) if (v !== me && v !== gift && !v.down) forceDown(v, gift);
+  gift.bat = false; gift.swingP = -1; gift.walking = false; rv = null;
+  setPhase('approach');
 }
 
-return { init, open, close, busy, setSeen, setPhoto, setMine, setProfile, encounter, endEncounter, shrink, squareJpeg };
+return { init, open, close, busy, skip, setSeen, setPhoto, setMine, setProfile, encounter, endEncounter, shrink, squareJpeg };
 })();
