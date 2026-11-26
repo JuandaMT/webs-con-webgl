@@ -1,7 +1,7 @@
 'use strict';
 /* CRM de clientes — vanilla JS, sin build. Datos vía /api/data (archivo JSON local). */
 const CFG = Object.assign({
-  googleMapsKey: '', region: '', language: 'es', currency: 'USD',
+  googleMapsKey: '', region: '', language: 'es', currency: 'EUR',
   defaultCenter: { lat: 4.711, lng: -74.0721 }, defaultZoom: 12, mapId: 'DEMO_MAP_ID',
 }, window.CRM_CONFIG || {});
 
@@ -24,6 +24,7 @@ const safeUrl = (u) => /^https?:\/\//i.test(u || '') ? u : '';
 let data = { clients: [] };
 let view = 'panel';
 let openId = null;
+let draft = null; // cliente nuevo aún sin datos: no se guarda hasta que se edita algo
 const filt = { q: '', status: '', mode: 'lista' };
 
 /* ---------- persistencia ---------- */
@@ -42,8 +43,14 @@ function toast(msg) {
   const t = $('#toast'); t.textContent = msg; t.classList.add('on');
   clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2600);
 }
-const byId = (id) => data.clients.find((c) => c.id === id);
-function touch(c) { c.updatedAt = new Date().toISOString(); save(); }
+const byId = (id) => (draft && draft.id === id ? draft : data.clients.find((c) => c.id === id));
+function touch(c) {
+  if (c === draft) { // primera edición: el borrador pasa a ser un cliente real
+    if (!c.name.trim()) c.name = 'Sin nombre';
+    data.clients.unshift(c); draft = null;
+  }
+  c.updatedAt = new Date().toISOString(); save();
+}
 
 function newClient(p = {}) {
   return Object.assign({
@@ -193,7 +200,7 @@ function openClient(id) {
   d.scrollTop = 0;
 }
 function closeDrawer() {
-  $('#drawer').hidden = true; $('#scrim').hidden = true; openId = null; render();
+  $('#drawer').hidden = true; $('#scrim').hidden = true; openId = null; draft = null; render();
 }
 $('#scrim').onclick = closeDrawer;
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && openId) closeDrawer(); });
@@ -229,8 +236,8 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('#drawer')) return;
   const o = e.target.closest('[data-open]'); if (o) { openClient(o.dataset.open); return; }
   if (e.target.closest('[data-act="new"]')) {
-    const c = newClient({ name: 'Nuevo cliente' }); data.clients.unshift(c); save(); openClient(c.id);
-    const n = $('#drawer [data-k="name"]'); n.focus(); n.select();
+    draft = newClient(); openClient(draft.id);
+    $('#drawer [data-k="name"]').focus();
   }
 });
 
