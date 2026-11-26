@@ -100,7 +100,7 @@ summary{cursor:pointer;font-weight:600}
 .room{padding:12px}
 .hint{text-align:center;color:var(--gold);margin:4px 0 8px;min-height:1.5em}
 .stage{width:100%;line-height:0}
-#roomCv{width:100%;display:block;touch-action:pan-y;cursor:grab}
+#roomCv{width:100%;display:block;touch-action:none;cursor:grab}
 .roomnav{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0 0}
 .roomnav .btn{padding:6px 12px;font-size:.9rem}
 .confirm{justify-content:center;margin-top:12px;font-weight:600}

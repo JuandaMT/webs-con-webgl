@@ -1,6 +1,6 @@
 # Amigo invisible
 
-Sala online para sortear el amigo invisible entre amigos. Una casa entera (salón, cocina, dormitorio y baño) en perspectiva caballera con avatares tipo Mii (con la cara de cada uno) que pasean de habitación en habitación; cada uno toca su avatar y el **Grinch** entra en la casa, se va cargando a todos los demás y, cuando solo quedan tú y tu amigo invisible, viene hacia ti y te cuenta quién te toca.
+Sala online para sortear el amigo invisible entre amigos. Una casa en planta vista con una ligera inclinación (salón-cocina delante y, detrás, cuarto azul, baño y dormitorio) con avatares tipo Mii (con la cara de cada uno) que pasean de habitación en habitación; cada uno toca su avatar y el **Grinch** entra por la puerta de la calle, se va cargando a todos los demás y, cuando solo quedan tú y tu amigo invisible, viene hacia ti y te cuenta quién te toca.
 
 Producción: https://amigo-invisible-navidad-2026.netlify.app
 
@@ -16,7 +16,7 @@ Producción: https://amigo-invisible-navidad-2026.netlify.app
 - Mientras los demás ven en la habitación nombres, motes y fotos, y un ✓ en quien ya ha mirado su amigo.
 
 ## Estructura
-- `index.html`, `style.css`, `app.js` (interfaz, nieve WebGL, flujo), `room.js` (casa, avatares y Grinch en Canvas 2D con proyección caballera).
+- `index.html`, `style.css`, `app.js` (interfaz, nieve WebGL, flujo), `room.js` (casa, avatares y Grinch en Canvas 2D, proyección ortogonal inclinada).
 - `netlify/functions/api.mjs`: API (crear, ver, identificar, revelar, perfil, enlaces). Los datos se guardan en Netlify Blobs.
 
 ## Desarrollo local
