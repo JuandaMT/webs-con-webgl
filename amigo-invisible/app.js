@@ -12,7 +12,7 @@ try { Object.assign(state, JSON.parse(localStorage.getItem(STORE) || '{}')); } c
 const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} };
 
 /* ---------- Navegación ---------- */
-const views = ['setup', 'done', 'room'];
+const views = ['setup', 'done', 'wishes', 'room'];
 function show(name) {
   views.forEach(v => $(v).hidden = v !== name);
   window.scrollTo(0, 0);
@@ -248,7 +248,9 @@ function renderNav(withMe) {
 function setHint(msg) {
   if (msg) { $('roomHint').textContent = msg; return; }
   if (rc.mode === 'pass') {
-    $('roomHint').textContent = rc.cast.every(c => seen.has(c.n)) ? '¡Todos listos! 🎉 Ya pueden salir de la habitación.' : '¿Quién eres? Toca tu avatar o tu nombre.';
+    const missing = rc.cast.filter((c, k) => !rc.wishes[k]);
+    $('roomHint').textContent = missing.length ? `Primero, cada uno escribe sus 3 ideas de regalo: toca tu nombre. Faltan: ${missing.map(c => c.n).join(', ')}.`
+      : rc.cast.every(c => seen.has(c.n)) ? '¡Todos listos! 🎉 Ya pueden salir de la casa.' : 'Ya están todas las ideas. ¿Quién eres? Toca tu avatar o tu nombre para ver a quién te toca.';
   } else if (rc.me !== null) {
     $('roomHint').textContent = `Hola, ${rc.cast[rc.me].n}. Tu avatar es el de la flecha dorada. Ponte mote y foto, y descubre a quién te toca.`;
   } else {
@@ -258,7 +260,7 @@ function setHint(msg) {
 function renderWho() {
   const ul = $('whoList'); ul.innerHTML = ''; ul.hidden = false;
   rc.cast.forEach((p, i) => {
-    const li = document.createElement('li'); if (seen.has(p.n)) li.className = 'seen';
+    const li = document.createElement('li'); li.className = (seen.has(p.n) ? 'seen ' : '') + (rc.wishes[i] ? 'wished' : '');
     const b = document.createElement('button'); b.type = 'button'; b.className = 'name'; b.textContent = p.n;
     b.onclick = () => askWho(i);
     li.append(b); ul.append(li);
@@ -277,7 +279,20 @@ function askWho(i) {
   $('whoConfirm').hidden = false;
 }
 $('whoNo').onclick = () => { $('whoConfirm').hidden = true; rc.pending = null; };
-$('whoYes').onclick = () => { const i = rc.pending; $('whoConfirm').hidden = true; $('whoList').hidden = true; meet(i); };
+$('whoYes').onclick = () => {
+  const i = rc.pending; $('whoConfirm').hidden = true;
+  if (!rc.wishes[i]) {       // antes de ver nada, sus 3 ideas
+    openWishes({
+      title: `Ideas de ${rc.cast[i].n}`, intro: 'Escribe 3 cosas que te gustaría que te regalaran. El Grinch se las dirá a quien te toque regalarte, así que no las enseñes… aún.',
+      current: [], saveLabel: 'Guardar', onCancel: backToRoom,
+      onSave: async w => { rc.wishes[i] = w; backToRoom(); renderWho(); setHint(); }
+    });
+    return;
+  }
+  const missing = rc.cast.filter((c, k) => !rc.wishes[k]);
+  if (missing.length) { setHint(`Todavía faltan las ideas de: ${missing.map(c => c.n).join(', ')}.`); return; }
+  $('whoList').hidden = true; meet(i);
+};
 $('revealBtn').onclick = () => reveal();
 
 async function reveal() {
@@ -285,17 +300,26 @@ async function reveal() {
   $('revealBtn').hidden = true; setHint('Un momento…');
   try {
     const r = await api('reveal/' + rc.id, { key: rc.key });
+    if (r.status === 409) { $('revealBtn').hidden = false; editWishes(); setHint('Antes de ver a quién te toca, escribe tus 3 ideas de regalo.'); return; }
     if (!r.ok) throw new Error();
     const d = await r.json();
-    rc.giftOf[rc.me] = d.gift; rc.cast[rc.me].opened = true; updateAdmin();
+    rc.giftOf[rc.me] = d.gift; rc.giftWishes[rc.me] = d.wishes || []; rc.cast[rc.me].opened = true; updateAdmin();
     meet(rc.me);
   } catch (e) { $('revealBtn').hidden = false; setHint('No he podido conectar con el servidor. Inténtalo otra vez.'); }
 }
 
 function meet(me) {
   const g = rc.giftOf[me], you = rc.cast[me], other = rc.cast[g];
+  const ws = ((rc.mode === 'online' ? rc.giftWishes[me] : rc.wishes[g]) || []).filter(Boolean);
   setHint('¡El Grinch ha entrado en la casa! 🏚️ Mira cómo se va cargando a todos…');
-  Room.encounter(me, g, `¡Hola ${lab(you)}! Soy el Grinch y me he cargado a todos los demás 😈 Tu amigo invisible es ${lab(other)}: ¡a ti te toca regalarle! 🎁`, () => {
+  const speech = [
+    `¡Hola ${lab(you)}! Soy el Grinch y me he cargado a todos los demás 😈 Tu amigo invisible es ${lab(other)}: ¡a ti te toca regalarle! 🎁`,
+    ws.length ? `Para que no falles, ${lab(other)} sueña con ${listEs(ws.map(w => `«${w}»`))} 🎄`
+      : `${lab(other)} todavía no me ha contado qué le hace ilusión… ¡vuelve a mirarlo más tarde! 🤷`
+  ];
+  Room.encounter(me, g, speech, () => {
+    const ul = $('roomWishes'); ul.innerHTML = '';
+    (ws.length ? ws : ['Aún no ha puesto sus ideas']).forEach(w => { const li = document.createElement('li'); li.textContent = w; if (!ws.length) li.className = 'none'; ul.append(li); });
     fillFace($('roomFace'), other.p, lab(other));
     $('roomName').textContent = lab(other);
     $('roomMeta').textContent = [other.nick && `Es ${other.n}`, rc.ev.budget && `Presupuesto: ${rc.ev.budget}`, rc.ev.date && `Fecha: ${rc.ev.date}`].filter(Boolean).join(' · ');
@@ -317,10 +341,46 @@ function leaveRoom() {
   $('title').innerHTML = '¿A quién te <em>toca?</em>'; rc = null; show('done');
 }
 
+/* ---------- Ideas de regalo ---------- */
+const completeWishes = w => Array.isArray(w) && w.length === 3 && w.every(x => typeof x === 'string' && x.trim());
+const listEs = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' y ' + a[a.length - 1];
+let wishCtx = null;
+function openWishes(ctx) {
+  wishCtx = ctx;
+  [1, 2, 3].forEach((n, k) => $('wish' + n).value = (ctx.current && ctx.current[k]) || '');
+  $('wishTitle').textContent = ctx.title; $('wishIntro').textContent = ctx.intro;
+  $('wishCancel').hidden = !ctx.onCancel; $('wishSave').textContent = ctx.saveLabel || 'Guardar'; $('wishMsg').textContent = '';
+  show('wishes'); $('wish1').focus();
+}
+$('wishSave').onclick = async () => {
+  const w = [1, 2, 3].map(n => $('wish' + n).value.trim().replace(/\s+/g, ' '));
+  if (w.some(x => !x)) { $('wishMsg').textContent = 'Rellena las 3 ideas para continuar.'; return; }
+  $('wishSave').disabled = true;
+  try { await wishCtx.onSave(w); }
+  catch (e) { $('wishMsg').textContent = e instanceof TypeError ? 'No hay conexión con el servidor. Inténtalo otra vez.' : (e.message || 'No he podido guardarlo. Inténtalo otra vez.'); }
+  finally { $('wishSave').disabled = false; }
+};
+$('wishCancel').onclick = () => wishCtx && wishCtx.onCancel && wishCtx.onCancel();
+[1, 2, 3].forEach(n => $('wish' + n).onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); n < 3 ? $('wish' + (n + 1)).focus() : $('wishSave').click(); } });
+function backToRoom() { show('room'); window.dispatchEvent(new Event('resize')); }
+async function saveWishes(w, id, key) {
+  const r = await api('wishes/' + id, { key, wishes: w });
+  if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.error || 'No he podido guardarlo.'); }
+}
+function editWishes() {
+  if (!rc || rc.me === null || Room.busy()) return;
+  openWishes({
+    title: 'Mis ideas de regalo', intro: 'Estas 3 ideas se las dirá el Grinch a quien te regale a ti. Puedes cambiarlas cuando quieras.',
+    current: rc.myWishes, saveLabel: 'Guardar', onCancel: backToRoom,
+    onSave: async w => { await saveWishes(w, rc.id, rc.key); rc.myWishes = w; backToRoom(); setHint('¡Ideas guardadas! 🎁'); }
+  });
+}
+$('roomWishEdit').onclick = editWishes;
+
 /* ---------- Sala online ---------- */
 $('modePass').onclick = () => {
   const cast = state.people.map(n => ({ n, p: facePhoto(n) }));
-  openRoom({ mode: 'pass', cast, giftOf: state.people.map(n => state.people.indexOf(result[n])), ev: { name: state.ev.name, budget: state.ev.budget, date: state.ev.date }, me: null });
+  openRoom({ mode: 'pass', cast, giftOf: state.people.map(n => state.people.indexOf(result[n])), wishes: {}, ev: { name: state.ev.name, budget: state.ev.budget, date: state.ev.date }, me: null });
 };
 
 $('modeOnline').onclick = async () => {
@@ -346,7 +406,7 @@ async function refresh() {
         if (c.p !== p.p) { c.p = p.p; Room.setPhoto(i, p.p); }
         if ((c.nick || '') !== p.nick) { c.nick = p.nick; Room.setProfile(i, { nick: p.nick }); }
       }
-      c.opened = p.opened;
+      c.opened = p.opened; c.wished = p.wished;
       if (p.opened && !seen.has(p.n)) { seen.add(p.n); Room.setSeen(i); }
     });
     updateAdmin();
@@ -384,7 +444,7 @@ function updateAdmin() {
   rc.cast.forEach((p, i) => {
     const ok = !!p.opened; if (ok) n++;
     const st = rc.adminRows[i]; if (!st) return;
-    st.textContent = ok ? '✓ Ya ha mirado' : 'Pendiente'; st.className = 'st' + (ok ? ' ok' : '');
+    st.textContent = (ok ? '✓ Ya ha mirado' : 'Pendiente') + (p.wished ? '' : ' · sin ideas aún'); st.className = 'st' + (ok ? ' ok' : '');
   });
   $('adminSummary').textContent = n === rc.cast.length ? `¡Todos han mirado! (${n} de ${n}) 🎉` : `${n} de ${rc.cast.length} ya han mirado a quién les toca`;
 }
@@ -429,9 +489,17 @@ async function boot() {
       const r = await api('game/' + id);
       if (!r.ok) throw new Error();
       const d = await r.json();
-      let me = null;
-      if (key) { const m = await api('me/' + id, { key }); if (m.ok) me = (await m.json()).i; }
-      openRoom({ mode: 'online', id, key: me === null ? null : key, me, admin: localStorage.getItem(K + 'admin:' + id), cast: d.people, giftOf: [], ev: d.ev });
+      let me = null, myWishes = [];
+      if (key) { const m = await api('me/' + id, { key }); if (m.ok) { const j = await m.json(); me = j.i; myWishes = j.wishes || []; } }
+      const o = { mode: 'online', id, key: me === null ? null : key, me, admin: localStorage.getItem(K + 'admin:' + id), cast: d.people, giftOf: [], giftWishes: [], myWishes, ev: d.ev };
+      if (me !== null && !completeWishes(myWishes)) {     // antes de ver nada, sus 3 ideas de regalo
+        if (d.ev.name) $('title').textContent = d.ev.name;
+        openWishes({
+          title: `Hola, ${d.people[me].n} 👋`, current: myWishes, saveLabel: 'Guardar y entrar →',
+          intro: 'Antes de entrar en la casa, escribe 3 cosas que te gustaría que te regalaran. Cuando el Grinch le cuente a tu amigo invisible que te toca regalarte, se las dirá.',
+          onSave: async w => { await saveWishes(w, id, key); o.myWishes = w; openRoom(o); }
+        });
+      } else openRoom(o);
       return;
     } catch (e) { $('title').textContent = 'Sala no encontrada'; }
   }

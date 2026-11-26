@@ -12,6 +12,10 @@ const rid = n => {
 const PHOTO = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/;
 const okPhoto = p => p === '' || (typeof p === 'string' && p.length < 30000 && PHOTO.test(p));
 const str = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+// Ideas de regalo: exactamente 3, ninguna vacía (sin caracteres de control ni < >).
+const cleanWish = v => str(v, 50).replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim();
+const wishesOf = p => Array.isArray(p.wishes) ? p.wishes : [];
+const wishesDone = p => { const w = wishesOf(p); return w.length === 3 && w.every(x => typeof x === 'string' && x); };
 const same = (a, b) => typeof a === 'string' && typeof b === 'string' && a.length === b.length && a === b;
 
 // Sorteo con backtracking aleatorio: devuelve giftOf[i] = índice del receptor.
@@ -45,7 +49,7 @@ export default async (req) => {
   if (action === 'create' && req.method === 'POST') {
     const people = Array.isArray(body.people) ? body.people : [];
     if (people.length < 3 || people.length > 40) return json({ error: 'Hacen falta entre 3 y 40 participantes.' }, 400);
-    const clean = people.map(p => ({ n: str(p && p.n, 30), p: p && okPhoto(p.p || '') ? (p.p || '') : '', nick: '', key: rid(16), opened: false }));
+    const clean = people.map(p => ({ n: str(p && p.n, 30), p: p && okPhoto(p.p || '') ? (p.p || '') : '', nick: '', wishes: [], key: rid(16), opened: false }));
     if (clean.some(p => !p.n)) return json({ error: 'Nombre vacío.' }, 400);
     if (new Set(clean.map(p => p.n.toLowerCase())).size !== clean.length) return json({ error: 'Nombres repetidos.' }, 400);
     const pos = new Map(clean.map((p, i) => [p.n, i]));
@@ -69,19 +73,32 @@ export default async (req) => {
   const byKey = k => g.people.findIndex(p => same(p.key, str(k, 32)));
 
   if (action === 'game' && req.method === 'GET') {
-    return json({ ev: g.ev, people: g.people.map(p => ({ n: p.n, p: p.p, nick: p.nick || '', opened: !!p.opened })) });
+    return json({ ev: g.ev, people: g.people.map(p => ({ n: p.n, p: p.p, nick: p.nick || '', opened: !!p.opened, wished: wishesDone(p) })) });
   }
 
   if (action === 'me' && req.method === 'POST') {
     const i = byKey(body.key);
-    return i < 0 ? json({ error: 'Enlace no válido' }, 401) : json({ i });
+    return i < 0 ? json({ error: 'Enlace no válido' }, 401) : json({ i, wishes: wishesOf(g.people[i]) });
   }
 
   if (action === 'reveal' && req.method === 'POST') {
     const i = byKey(body.key);
     if (i < 0) return json({ error: 'Enlace no válido' }, 401);
+    // Antes de ver nada hay que haber puesto las 3 ideas de regalo.
+    if (!wishesDone(g.people[i])) return json({ error: 'Antes de ver a quién te toca, escribe tus 3 ideas de regalo.' }, 409);
     if (!g.people[i].opened) { g.people[i].opened = true; await store.setJSON(id, g); }
-    return json({ gift: g.giftOf[i] });
+    // El Grinch cuenta las ideas de la persona a la que le haces el regalo (puede que aún no las haya puesto).
+    return json({ gift: g.giftOf[i], wishes: wishesOf(g.people[g.giftOf[i]]) });
+  }
+
+  if (action === 'wishes' && req.method === 'POST') {
+    const i = byKey(body.key);
+    if (i < 0) return json({ error: 'Enlace no válido' }, 401);
+    const w = Array.isArray(body.wishes) ? body.wishes.map(cleanWish) : [];
+    if (w.length !== 3 || w.some(x => !x)) return json({ error: 'Rellena las 3 ideas de regalo.' }, 400);
+    g.people[i].wishes = w;
+    await store.setJSON(id, g);
+    return json({ ok: true, wishes: w });
   }
 
   if (action === 'profile' && req.method === 'POST') {

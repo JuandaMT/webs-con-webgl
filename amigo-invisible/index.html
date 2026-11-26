@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex">
 <title>Amigo invisible</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect x='8' y='24' width='48' height='32' rx='4' fill='%23c8102e'/><rect x='28' y='24' width='8' height='32' fill='%23f4c95d'/><rect x='6' y='16' width='52' height='10' rx='3' fill='%23e5384f'/></svg>">
-<link rel="stylesheet" href="style.css?v=10">
+<link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
 <canvas id="snow" aria-hidden="true"></canvas>
@@ -66,16 +66,30 @@
     <div class="grid2">
       <button id="modeOnline" class="mode" type="button">
         <strong>🌐 Crear sala para mis amigos</strong>
-        <span>Cada uno tiene su enlace personal: ve a todos en la casa, se pone mote y foto, y el Grinch se carga a los demás y viene a contarle quién le toca. El sorteo lo hace el servidor: ni tú sabrás quién le toca a quién.</span>
+        <span>Cada uno tiene su enlace personal: primero escribe 3 ideas de regalo, luego ve a todos en la casa, se pone mote y foto, y el Grinch se carga a los demás y viene a contarle quién le toca y qué le hace ilusión. El sorteo lo hace el servidor: ni tú sabrás quién le toca a quién.</span>
       </button>
       <button id="modePass" class="mode" type="button">
         <strong>📱 Pasar el móvil</strong>
-        <span>Todos juntos con un solo dispositivo, sin conexión.</span>
+        <span>Todos juntos con un solo dispositivo, sin conexión. Cada uno escribe primero sus 3 ideas de regalo.</span>
       </button>
     </div>
     <p id="doneMsg" class="msg" role="alert"></p>
     <div class="row end">
       <button id="redoBtn" class="btn ghost" type="button">← Volver</button>
+    </div>
+  </section>
+
+  <!-- 3. TUS 3 IDEAS DE REGALO -->
+  <section id="wishes" class="card" hidden>
+    <h2 id="wishTitle">Antes de entrar…</h2>
+    <p id="wishIntro" class="muted"></p>
+    <label>Idea 1 <input id="wish1" type="text" maxlength="50" placeholder="Un libro de misterio" autocomplete="off"></label>
+    <label>Idea 2 <input id="wish2" type="text" maxlength="50" placeholder="Unos calcetines divertidos" autocomplete="off"></label>
+    <label>Idea 3 <input id="wish3" type="text" maxlength="50" placeholder="Una taza de Navidad" autocomplete="off"></label>
+    <p id="wishMsg" class="msg" role="alert"></p>
+    <div class="row end">
+      <button id="wishCancel" class="btn ghost" type="button" hidden>← Volver</button>
+      <button id="wishSave" class="btn big" type="button">Guardar →</button>
     </div>
   </section>
 
@@ -95,6 +109,10 @@
       <div id="roomFace" class="face"></div>
       <p id="roomName" class="big-name"></p>
       <p id="roomMeta" class="muted"></p>
+      <div class="wishbox">
+        <p class="muted">Le haría ilusión…</p>
+        <ul id="roomWishes"></ul>
+      </div>
       <p class="note">Shhh… es un secreto 🤫</p>
     </div>
     <input id="roomPhotoIn" type="file" accept="image/*" hidden>
@@ -103,7 +121,10 @@
       <h3>Tu perfil</h3>
       <div class="row"><input id="nickIn" type="text" maxlength="20" placeholder="Tu mote (opcional)" autocomplete="off" aria-label="Tu mote">
         <button id="nickSave" class="btn" type="button">Guardar</button></div>
-      <div class="row end"><button id="roomPhoto" class="btn ghost" type="button">📷 Cambiar mi foto</button></div>
+      <div class="row end">
+        <button id="roomWishEdit" class="btn ghost" type="button">🎁 Mis ideas de regalo</button>
+        <button id="roomPhoto" class="btn ghost" type="button">📷 Cambiar mi foto</button>
+      </div>
     </div>
     <div id="adminBox" class="admin" hidden>
       <h3>Organizador</h3>
@@ -131,7 +152,7 @@
   </div>
 </div>
 
-<script src="room.js?v=10"></script>
-<script src="app.js?v=10"></script>
+<script src="room.js?v=11"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>

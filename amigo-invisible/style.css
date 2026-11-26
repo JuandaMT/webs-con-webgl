@@ -101,6 +101,13 @@ summary{cursor:pointer;font-weight:600}
 .hint{text-align:center;color:var(--gold);margin:4px 0 8px;min-height:1.5em}
 .stage{width:100%;line-height:0}
 #roomCv{width:100%;display:block;touch-action:none;cursor:grab}
+.wishbox{margin:6px 0 0}
+#roomWishes{list-style:none;margin:.2em auto 0;padding:0;display:inline-block;text-align:left}
+#roomWishes li{padding:3px 0 3px 1.6em;position:relative;font-weight:600}
+#roomWishes li::before{content:"🎁";position:absolute;left:0}
+#roomWishes li.none{font-weight:400;color:var(--mut)}
+#roomWishes li.none::before{content:"⏳"}
+.chips.big li.wished button.name::after{content:" 🎁"}
 .roomnav{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0 0}
 .roomnav .btn{padding:6px 12px;font-size:.9rem}
 .confirm{justify-content:center;margin-top:12px;font-weight:600}

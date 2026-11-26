@@ -27,7 +27,7 @@ let cv, ctx, raf = 0, last = 0, clock = 0;
 let cssW = 0, viewH = 0, dpr = 1, s = 1, U = 30, ox = 0, oy = 0, worldW = 0, worldH = 0;
 let cast = [], items = [], walls = [], H_ = {};
 let phase = 'idle', me = null, gift = null, grinch = null;
-let talkT = 0, text = '', talkDone = false, onTalkDone = null;
+let talkT = 0, text = '', pages = [], pi = 0, talkDone = false, onTalkDone = null;
 let hover = null, panned = false, panX = 0, panY = 0, dragging = false;
 const cam = { z: 1, cx: 0, cy: 0, snap: true };
 
@@ -525,7 +525,7 @@ function beginApproach() {
   setPhase('approach');
 }
 function startTalk() {
-  setPhase('talk'); talkT = 0; talkDone = false;
+  setPhase('talk'); talkT = 0; talkDone = false; pi = 0; text = pages[0];
   grinch.walking = false; grinch.wave = true; gift.walking = false;
 }
 
@@ -559,7 +559,8 @@ function update(dt) {
   }
   if (phase === 'talk') {
     talkT += dt;
-    if (!talkDone && talkT * 28 >= text.length) { talkDone = true; onTalkDone && onTalkDone(); }
+    if (pi < pages.length - 1) { if (talkT * 28 >= text.length + 45) { text = pages[++pi]; talkT = 0; } }   // pausa y siguiente globo
+    else if (!talkDone && talkT * 28 >= text.length) { talkDone = true; onTalkDone && onTalkDone(); }
   }
   updateCam(dt);
 }
@@ -707,7 +708,7 @@ function follow() { panned = false; }
 
 // El Grinch entra por la puerta de la calle.
 function encounter(meIdx, giftIdx, say, done) {
-  me = cast[meIdx]; gift = cast[giftIdx]; text = say; talkDone = false; onTalkDone = done; hover = null; panned = false;
+  me = cast[meIdx]; gift = cast[giftIdx]; pages = Array.isArray(say) ? say : [say]; text = pages[0]; pi = 0; talkDone = false; onTalkDone = done; hover = null; panned = false;
   grinch = { i: -1, n: 'El Grinch', label: 'El Grinch', grinch: true, x: W / 2, z: .4, t: 0, v: 0, wait: 0, walking: false, wave: false, img: null, bat: true, swingP: -1, pts: [], replan: 0, mark: '' };
   for (const a of cast) { a.mark = ''; a.scared = false; a.arr = false; }
   rv = null; effects = [{ x: grinch.x, z: grinch.z, t: 0, txt: '¡JA, JA, JA!' }];
