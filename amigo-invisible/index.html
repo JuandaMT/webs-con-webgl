@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex">
 <title>Amigo invisible</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect x='8' y='24' width='48' height='32' rx='4' fill='%23c8102e'/><rect x='28' y='24' width='8' height='32' fill='%23f4c95d'/><rect x='6' y='16' width='52' height='10' rx='3' fill='%23e5384f'/></svg>">
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
 <canvas id="snow" aria-hidden="true"></canvas>
@@ -66,7 +66,7 @@
     <div class="grid2">
       <button id="modeOnline" class="mode" type="button">
         <strong>🌐 Crear sala para mis amigos</strong>
-        <span>Cada uno tiene su enlace personal: ve a todos en la habitación, se pone mote y foto, y su amigo invisible viene a contárselo. El sorteo lo hace el servidor: ni tú sabrás quién le toca a quién.</span>
+        <span>Cada uno tiene su enlace personal: ve a todos en la casa, se pone mote y foto, y el Grinch se carga a los demás y viene a contarle quién le toca. El sorteo lo hace el servidor: ni tú sabrás quién le toca a quién.</span>
       </button>
       <button id="modePass" class="mode" type="button">
         <strong>📱 Pasar el móvil</strong>
@@ -82,7 +82,8 @@
   <!-- 4. HABITACIÓN -->
   <section id="room" class="card room" hidden>
     <p id="roomHint" class="hint"></p>
-    <div class="stage"><canvas id="roomCv" aria-label="Habitación con los avatares de todos los participantes"></canvas></div>
+    <div class="stage"><canvas id="roomCv" aria-label="Casa con los avatares de todos los participantes"></canvas></div>
+    <div id="roomNav" class="roomnav" aria-label="Ir a una habitación"></div>
     <ul id="whoList" class="chips big"></ul>
     <div id="whoConfirm" class="row confirm" hidden>
       <span id="whoQ"></span>
@@ -130,7 +131,7 @@
   </div>
 </div>
 
-<script src="room.js?v=8"></script>
-<script src="app.js?v=8"></script>
+<script src="room.js?v=9"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

@@ -222,7 +222,8 @@ function openRoom(o) {
   const online = o.mode === 'online';
   $('roomBack').hidden = online;
   if (online) rc.cast.forEach(c => { if (c.opened) seen.add(c.n); });
-  Room.open(o.cast, { onPick: askWho, onPhase: ph => { $('roomSkip').hidden = ph !== 'rampage'; } }, 'pick');
+  Room.open(o.cast, { onPick: askWho, onPhase: ph => { $('roomSkip').hidden = ph !== 'rampage' && ph !== 'approach'; } }, 'pick');
+  renderNav(online && rc.me !== null);
   rc.cast.forEach((c, i) => { if (seen.has(c.n)) Room.setSeen(i); });
   if (online && rc.me !== null) Room.setMine(rc.me);
   if (online) { $('whoList').hidden = true; $('whoList').innerHTML = ''; } else renderWho();
@@ -232,6 +233,16 @@ function openRoom(o) {
     if (rc.admin) renderAdmin();
     poll = setInterval(refresh, 8000);
   }
+}
+
+function renderNav(withMe) {
+  const nav = $('roomNav'); nav.innerHTML = '';
+  const add = (label, fn) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ghost'; b.textContent = label;
+    b.onclick = () => { if (!Room.busy()) fn(); }; nav.append(b);
+  };
+  if (withMe) add('📍 Yo', () => Room.follow());
+  Room.ROOMS.forEach((r, k) => add(`${r.icon} ${r.name}`, () => Room.focusRoom(k)));
 }
 
 function setHint(msg) {
@@ -283,8 +294,8 @@ async function reveal() {
 
 function meet(me) {
   const g = rc.giftOf[me], you = rc.cast[me], other = rc.cast[g];
-  setHint(`${lab(other)} saca un bate… 🏏 ¡Cuidado!`);
-  Room.encounter(me, g, `¡Hola ${lab(you)}! Ya me he encargado de los demás 😈 Soy ${lab(other)}: ¡te ha tocado regalarme a mí! 🎁`, () => {
+  setHint('¡El Grinch ha entrado en la casa! 🏚️ Mira cómo se va cargando a todos…');
+  Room.encounter(me, g, `¡Hola ${lab(you)}! Soy el Grinch y me he cargado a todos los demás 😈 Tu amigo invisible es ${lab(other)}: ¡a ti te toca regalarle! 🎁`, () => {
     fillFace($('roomFace'), other.p, lab(other));
     $('roomName').textContent = lab(other);
     $('roomMeta').textContent = [other.nick && `Es ${other.n}`, rc.ev.budget && `Presupuesto: ${rc.ev.budget}`, rc.ev.date && `Fecha: ${rc.ev.date}`].filter(Boolean).join(' · ');
