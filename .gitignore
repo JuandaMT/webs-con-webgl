@@ -8,3 +8,6 @@ _modelos_candidatos/
 # CRM: datos de clientes y clave de Google Maps (nunca al repo)
 crm/data/
 crm/config.local.js
+
+node_modules/
+.env

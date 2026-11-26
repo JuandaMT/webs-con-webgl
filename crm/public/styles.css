@@ -96,3 +96,8 @@ label{display:block;font-size:12px;color:var(--mut);font-weight:600;margin-botto
   .addc{grid-template-columns:1fr 1fr}.addc input:nth-of-type(2){grid-column:auto}.addc button{grid-column:1/-1}
   .f{grid-template-columns:1fr}.hide-m{display:none}
 }
+
+.login{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:16px;background:var(--bg)}
+.login form{width:min(340px,100%);display:grid;gap:12px}
+.login .brand{padding:0}.login .sub{margin:0}
+.err{color:#b91c1c;margin:0;min-height:1.4em;font-size:14px}

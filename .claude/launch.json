@@ -46,6 +46,20 @@
         "--offline"
       ],
       "port": 5176
+    },
+    {
+      "name": "crm-netlify",
+      "runtimeExecutable": "netlify",
+      "runtimeArgs": [
+        "dev",
+        "--cwd",
+        "crm",
+        "--port",
+        "5177",
+        "--no-open",
+        "--offline"
+      ],
+      "port": 5177
     }
   ]
 }

@@ -28,17 +28,59 @@ let draft = null; // cliente nuevo aún sin datos: no se guarda hasta que se edi
 const filt = { q: '', status: '', mode: 'lista' };
 
 /* ---------- persistencia ---------- */
-let saveTimer = null, saveFail = false;
-function save() {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
-    try {
-      const r = await fetch('/api/data', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      if (!r.ok) throw new Error(r.status);
-      saveFail = false;
-    } catch (e) { saveFail = true; toast('⚠ No se pudo guardar. ¿Sigue corriendo el servidor?'); }
-  }, 250);
+// En local (node server.js) no hay contraseña ni versiones. En Netlify la API pide sesión (token) y X-Rev.
+const TOKEN_KEY = 'crm_token';
+const getToken = () => { try { return localStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; } };
+const setToken = (t) => { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch {} };
+const api = (path, opts = {}) => {
+  const t = getToken();
+  return fetch(path, { ...opts, headers: { ...(opts.headers || {}), ...(t ? { Authorization: 'Bearer ' + t } : {}) } });
+};
+let saveTimer = null, saveFail = false, saving = false, dirty = false;
+let loaded = false, rev = null, conflict = false;
+function save() { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 250); }
+async function flush() {
+  if (!loaded || conflict) return;              // nunca escribir si la carga inicial falló
+  if (saving) { dirty = true; return; }
+  saving = true;
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (rev !== null) headers['X-Rev'] = rev;
+    const r = await api('/api/data', { method: 'PUT', headers, body: JSON.stringify(data) });
+    if (r.status === 401) { showLogin(); return; }   // al volver a entrar se reintenta
+    if (r.status === 409) { onConflict(); return; }
+    if (!r.ok) throw new Error(r.status);
+    rev = r.headers.get('X-Rev') ?? rev; saveFail = false;
+  } catch (e) { saveFail = true; toast('⚠ No se pudo guardar. Revisa la conexión o el servidor.'); }
+  finally { saving = false; if (dirty) { dirty = false; save(); } }
 }
+function onConflict() {
+  conflict = true;
+  if (confirm('Los datos se modificaron desde otro dispositivo.\n\nAceptar: recargar y ver la última versión (se pierden tus últimos cambios).\nCancelar: seguir sin guardar.')) location.reload();
+  else toast('⚠ Sin guardar. Recarga la página para ver la última versión.');
+}
+async function loadData() {
+  const r = await api('/api/data');
+  if (r.status === 401) { showLogin(); return false; }
+  if (!r.ok) throw new Error(r.status);
+  data = await r.json(); data.clients = (data.clients || []).map((c) => newClient(c));
+  rev = r.headers.get('X-Rev'); loaded = true; return true;
+}
+
+/* ---------- contraseña (solo cuando la API la pide) ---------- */
+function showLogin() { $('#login').hidden = false; $('#login-pw').focus(); }
+$('#login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = $('#login-go'), err = $('#login-err'); btn.disabled = true; err.textContent = '';
+  try {
+    const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: $('#login-pw').value }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { err.textContent = j.error || 'No se pudo entrar'; return; }
+    setToken(j.token); $('#login-pw').value = ''; $('#login').hidden = true;
+    if (loaded) flush(); else { if (await loadData()) go(view); }
+  } catch { err.textContent = 'Sin conexión con el servidor'; }
+  finally { btn.disabled = false; }
+});
 function toast(msg) {
   const t = $('#toast'); t.textContent = msg; t.classList.add('on');
   clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2600);
@@ -244,9 +286,11 @@ document.addEventListener('click', (e) => {
 /* ---------- ajustes ---------- */
 function renderAjustes() {
   $('#v-ajustes').innerHTML = `<header class="head"><div><h1>Ajustes</h1><p class="sub">Copia de seguridad y estado de la configuración.</p></div></header>
-  <div class="card"><h2>Datos</h2><p class="sub">Se guardan en <code>crm/data/crm.json</code> (ignorado por git). ${data.clients.length} clientes.</p>
+  <div class="card"><h2>Datos</h2><p class="sub">${rev !== null ? 'Se guardan en Netlify Blobs.' : 'Se guardan en <code>crm/data/crm.json</code> (ignorado por git).'} ${data.clients.length} clientes.</p>
     <p><button class="btn" id="exp">Exportar JSON</button> <label class="btn" style="display:inline-block;margin:0;cursor:pointer">Importar JSON<input id="imp" type="file" accept="application/json" hidden></label></p></div>
-  <div class="card" style="margin-top:16px"><h2>Google Maps</h2><p class="sub">${CFG.googleMapsKey ? 'Clave cargada desde <code>config.local.js</code>.' : 'Sin clave. Copia <code>config.example.js</code> a <code>config.local.js</code> y pon tu clave.'}</p></div>`;
+  <div class="card" style="margin-top:16px"><h2>Google Maps</h2><p class="sub">${CFG.googleMapsKey ? 'Clave de Google Maps cargada.' : 'Sin clave. En local: <code>config.local.js</code>. En Netlify: variable <code>GOOGLE_MAPS_KEY</code>.'}</p></div>
+  ${getToken() ? '<div class="card" style="margin-top:16px"><h2>Sesión</h2><p><button class="btn" id="logout">Cerrar sesión</button></p></div>' : ''}`;
+  if ($('#logout')) $('#logout').onclick = () => { setToken(''); location.reload(); };
   $('#exp').onclick = () => {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
@@ -269,7 +313,7 @@ function initMaps() {
   const setup = $('#map-setup');
   if (!CFG.googleMapsKey || CFG.googleMapsKey.startsWith('PEGA_')) {
     setup.hidden = false;
-    setup.innerHTML = '<b>Falta la clave de Google Maps.</b> Copia <code>crm/config.example.js</code> a <code>crm/config.local.js</code>, pon tu clave (APIs: Maps JavaScript y Places API (New)) y reinicia. Mientras tanto puedes añadir clientes manualmente.';
+    setup.innerHTML = '<b>Falta la clave de Google Maps.</b> Pon tu clave (APIs: Maps JavaScript y Places API (New)) en <code>crm/config.local.js</code> (local) o en la variable <code>GOOGLE_MAPS_KEY</code> (Netlify). Mientras tanto puedes añadir clientes manualmente.';
     $('#q-go').disabled = true; return;
   }
   setup.hidden = true; $('#q-go').disabled = false;
@@ -350,9 +394,6 @@ $('#results').addEventListener('click', (e) => {
 
 /* ---------- arranque ---------- */
 (async function init() {
-  try {
-    const r = await fetch('/api/data'); data = await r.json();
-    data.clients = (data.clients || []).map((c) => newClient(c));
-  } catch { toast('No se pudo leer los datos. Arranca con «node server.js».'); }
+  try { await loadData(); } catch { toast('No se pudo leer los datos. Revisa la conexión o el servidor.'); }
   go('panel');
 })();
