@@ -99,7 +99,7 @@ function renderPanel() {
   <div class="kpis">
     <div class="card kpi"><small>Clientes totales</small><b>${cs.length}</b></div>
     <div class="card kpi"><small>En el embudo</small><b>${active}</b></div>
-    <div class="card kpi"><small>Ganados · conversión ${conv}</small><b>${won.length}</b></div>
+    <div class="card kpi"><small>Ganados · conv. ${conv}</small><b>${won.length}</b></div>
     <div class="card kpi"><small>Ingresos</small><b>${money(revenue)}</b></div>
     <div class="card kpi"><small>En propuesta (potencial)</small><b>${money(pipeline)}</b></div>
   </div>
